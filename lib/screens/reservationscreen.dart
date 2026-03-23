@@ -33,6 +33,8 @@ class ReservationDetailsScreen extends StatefulWidget {
   final TimeOfDay? startTime;
   final String? vehiclePlate;
   final String? imagePath;
+  final String? reservationId;
+  final int? parkingRecordId;
 
   ReservationDetailsScreen({
     super.key,
@@ -48,6 +50,8 @@ class ReservationDetailsScreen extends StatefulWidget {
     this.startTime,
     this.vehiclePlate,
     this.imagePath,
+    this.reservationId,
+    this.parkingRecordId,
   }) : date = date ?? DateTime(2025, 11, 16);
 
   @override
@@ -58,6 +62,15 @@ class ReservationDetailsScreen extends StatefulWidget {
 class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
   String selectedPaymentMethod = 'Mobile money';
   int selectedNavIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    print('🎫 ReservationDetailsScreen initialized');
+    print('   ReservationId: ${widget.reservationId}');
+    print('   ParkingRecordId: ${widget.parkingRecordId}');
+    print('   VehiclePlate: ${widget.vehiclePlate}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -451,6 +464,12 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                                 'totalAmount': widget.totalCost,
                                 'parkingName': widget.parkingName,
                                 'parkingLocation': widget.parkingLocation,
+                                'reservationId': widget.reservationId,
+                                'parkingRecordId': widget.parkingRecordId,
+                                'vehiclePlate': widget.vehiclePlate,
+                                'slotNumber': widget.slotNumber?.toString(),
+                                'duration': widget.duration,
+                                'hours': widget.hours,
                               },
                             );
                           } else {

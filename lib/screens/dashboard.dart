@@ -6,6 +6,7 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import '../models/reservation_manager.dart';
 import '../themes/colors.dart';
 import '../services/auth_service.dart';
+import '../services/theme_service.dart';
 import 'profile_screen.dart';
 import 'community_screen.dart';
 import 'settings_screen.dart';
@@ -29,7 +30,9 @@ class DashboardApp extends StatelessWidget {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final int? initialTab;
+
+  const DashboardScreen({super.key, this.initialTab});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -46,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: 'Kololo, Kampala',
       totalSlots: 40,
       availableSlots: 18,
-      pricePerHour: 5000,
+      pricePerHour: 1500,
       imagePath: 'lib/assets/images/bd.jpg',
       rating: 4.5,
     ),
@@ -55,7 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: 'Kira Rd, Kampala',
       totalSlots: 36,
       availableSlots: 12,
-      pricePerHour: 6000,
+      pricePerHour: 2000,
       imagePath: 'lib/assets/images/Kampala-ciuty.jpg',
       rating: 4.8,
     ),
@@ -64,7 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: 'Central Division',
       totalSlots: 32,
       availableSlots: 9,
-      pricePerHour: 4500,
+      pricePerHour: 1500,
       imagePath: 'lib/assets/images/ka1.jpg',
       rating: 4.2,
     ),
@@ -73,7 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: '8 Nakasero Ln, Kampala, Uganda',
       totalSlots: 78,
       availableSlots: 45,
-      pricePerHour: 5500,
+      pricePerHour: 3500,
       imagePath: 'lib/assets/images/Jinja-Town.jpg',
       rating: 4.5,
     ),
@@ -82,7 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: 'Nkrumah Rd, Kampala, Uganda',
       totalSlots: 68,
       availableSlots: 35,
-      pricePerHour: 4800,
+      pricePerHour: 2800,
       imagePath: 'lib/assets/images/Jinja.jpg',
       rating: 4.2,
     ),
@@ -91,7 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: 'Sir Apollo Kaggwa Rd, Kampala',
       totalSlots: 84,
       availableSlots: 28,
-      pricePerHour: 4200,
+      pricePerHour: 2200,
       imagePath: 'lib/assets/images/own.webp',
       rating: 4.0,
     ),
@@ -100,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: 'Nasser Rd, Kampala, Uganda',
       totalSlots: 65,
       availableSlots: 55,
-      pricePerHour: 6200,
+      pricePerHour: 1200,
       imagePath: 'lib/assets/images/bd.jpg',
       rating: 4.5,
     ),
@@ -109,7 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       location: 'Client Parking',
       totalSlots: 55,
       availableSlots: 32,
-      pricePerHour: 5200,
+      pricePerHour: 2500,
       imagePath: 'lib/assets/images/ka1.jpg',
       rating: 4.3,
     ),
@@ -121,7 +124,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTab ?? 0,
+    );
+
+    // Add listener to refresh when tab changes
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
+
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
       setState(() {
         for (final lot in _parkingLots) {
@@ -332,24 +347,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ),
                         ),
                         Switch(
-                          value: false,
+                          value: ThemeService().isDarkMode,
                           onChanged: (value) {
-                            // TODO: Implement dark mode toggle
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('Dark mode coming soon!'),
-                                backgroundColor: Colors.white.withValues(
-                                  alpha: 0.2,
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            );
+                            ThemeService().toggleTheme();
                           },
                           activeThumbColor: Colors.white,
-                          activeTrackColor: const Color(0xFF5B6B9E),
+                          activeTrackColor: const Color(0xFF00A884),
                           inactiveThumbColor: Colors.white70,
                           inactiveTrackColor: Colors.white24,
                         ),
@@ -647,12 +650,15 @@ class _DashboardScreenState extends State<DashboardScreen>
             // Image with badge overlay
             Stack(
               children: [
+
                 Container(
                   height: 130,
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(16),
+
                       topRight: Radius.circular(16),
+
                     ),
                     image: DecorationImage(
                       image: AssetImage(lot.imagePath),
@@ -873,9 +879,39 @@ class ReservationsTabContent extends StatefulWidget {
   State<ReservationsTabContent> createState() => _ReservationsTabContentState();
 }
 
-class _ReservationsTabContentState extends State<ReservationsTabContent> {
+class _ReservationsTabContentState extends State<ReservationsTabContent>
+    with AutomaticKeepAliveClientMixin {
   int _selectedSubTab = 0;
   final Set<int> _expandedHistoryItems = {};
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to reservation changes
+    ReservationManager.instance.addListener(_onReservationChanged);
+  }
+
+  @override
+  void dispose() {
+    ReservationManager.instance.removeListener(_onReservationChanged);
+    super.dispose();
+  }
+
+  void _onReservationChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh when returning to this tab
+    setState(() {});
+  }
 
   List<Map<String, dynamic>> get _activeReservations {
     return ReservationManager.instance.reservations
@@ -897,6 +933,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Container(
       color: const Color(0xFFF5F7FA),
       child: Column(
@@ -1263,6 +1300,18 @@ class _ReservationsTabContentState extends State<ReservationsTabContent> {
   Widget _buildModernReservationCard(Map<String, dynamic> reservation) {
     final status = reservation['status'] ?? 'Active';
     final paymentStatus = reservation['paymentStatus'] ?? 'Payment pending';
+    final reservationId = reservation['reservationId'] ?? 'Unknown';
+
+    // Debug logging
+    print(
+      '🎴 Building card for $reservationId - Status: $status, Payment: $paymentStatus',
+    );
+
+    // Normalize payment status display - handle both "Payment completed" and "Paid"
+    final displayPaymentStatus =
+        (paymentStatus == 'Payment completed' || paymentStatus == 'Paid')
+        ? 'Paid'
+        : paymentStatus;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1413,15 +1462,19 @@ class _ReservationsTabContentState extends State<ReservationsTabContent> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: paymentStatus.contains('pending')
+                            color:
+                                paymentStatus.toLowerCase().contains('pending')
                                 ? Colors.orange.shade50
                                 : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            paymentStatus,
+                            displayPaymentStatus,
                             style: TextStyle(
-                              color: paymentStatus.contains('pending')
+                              color:
+                                  paymentStatus.toLowerCase().contains(
+                                    'pending',
+                                  )
                                   ? Colors.orange.shade700
                                   : Colors.green.shade700,
                               fontSize: 10,
@@ -1489,7 +1542,10 @@ class _ReservationsTabContentState extends State<ReservationsTabContent> {
                         ),
                       ),
                       Expanded(
-                        child: _buildDetailItem('Payment', paymentStatus),
+                        child: _buildDetailItem(
+                          'Payment',
+                          displayPaymentStatus,
+                        ),
                       ),
                     ],
                   ),
@@ -1542,11 +1598,56 @@ class _ReservationsTabContentState extends State<ReservationsTabContent> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (paymentStatus.contains('pending'))
+                    if (paymentStatus.toLowerCase().contains('pending'))
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Pay Now
+                            // Navigate to Reservation Details screen to pay
+                            final resId = reservation['reservationId'];
+                            print(
+                              '💳 Navigating to payment for reservation: $resId',
+                            );
+                            print(
+                              '   Current payment status: ${reservation['paymentStatus']}',
+                            );
+
+                            Navigator.pushNamed(
+                              context,
+                              '/reservation',
+                              arguments: {
+                                'reservationId': reservation['reservationId'],
+                                'parkingRecordId':
+                                    reservation['parkingRecordId'],
+                                'parkingName': reservation['location'],
+                                'parkingLocation': reservation['address'],
+                                'date':
+                                    DateTime.tryParse(
+                                      reservation['date'] ?? '',
+                                    ) ??
+                                    DateTime.now(),
+                                'duration': reservation['duration'],
+                                'hours':
+                                    int.tryParse(
+                                      reservation['duration']
+                                              ?.toString()
+                                              .replaceAll(
+                                                RegExp(r'[^0-9]'),
+                                                '',
+                                              ) ??
+                                          '2',
+                                    ) ??
+                                    2,
+                                'parkingRate':
+                                    reservation['parkingRate'] ?? 10000,
+                                'serviceFee': reservation['serviceFee'] ?? 1500,
+                                'totalCost': reservation['totalCost'] ?? 11500,
+                                'slotNumber': int.tryParse(
+                                  reservation['slotNumber']?.toString() ?? '',
+                                ),
+                                'vehiclePlate': reservation['spot'],
+                                'imagePath': reservation['imagePath'],
+                              },
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade600,
@@ -1562,12 +1663,68 @@ class _ReservationsTabContentState extends State<ReservationsTabContent> {
                           ),
                         ),
                       ),
-                    if (paymentStatus.contains('pending'))
+                    if (paymentStatus.toLowerCase().contains('pending'))
                       const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          // End Session
+                          // Show confirmation dialog
+                          showDialog(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              title: const Text('End Session'),
+                              content: const Text(
+                                'Are you sure you want to end this parking session?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    // End the session
+                                    ReservationManager.instance.endSession(
+                                      reservation['reservationId'],
+                                    );
+                                    Navigator.pop(dialogContext);
+                                    // Refresh the UI
+                                    setState(() {});
+
+                                    // Show success message
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Row(
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle,
+                                              color: Colors.white,
+                                            ),
+                                            SizedBox(width: 12),
+                                            Text('Session ended successfully'),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.green.shade600,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red.shade600,
+                                  ),
+                                  child: const Text('End Session'),
+                                ),
+                              ],
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red.shade600,

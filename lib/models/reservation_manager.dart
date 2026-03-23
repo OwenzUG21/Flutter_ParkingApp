@@ -1,4 +1,6 @@
-class ReservationManager {
+import 'package:flutter/foundation.dart';
+
+class ReservationManager extends ChangeNotifier {
   static final ReservationManager _instance = ReservationManager._internal();
 
   static ReservationManager get instance => _instance;
@@ -136,5 +138,60 @@ class ReservationManager {
   void addReservation(Map<String, dynamic> reservation) {
     _reservations.insert(0, reservation);
     _hasNewReservation = true;
+    notifyListeners();
+  }
+
+  void updateReservationPaymentStatus(
+    String reservationId,
+    String paymentStatus,
+  ) {
+    final index = _reservations.indexWhere(
+      (r) => r['reservationId'] == reservationId,
+    );
+    if (index != -1) {
+      _reservations[index]['paymentStatus'] = paymentStatus;
+      notifyListeners();
+      print('✅ Payment status updated for $reservationId to $paymentStatus');
+    } else {
+      print('❌ Reservation not found: $reservationId');
+    }
+  }
+
+  void endSession(String reservationId) {
+    final index = _reservations.indexWhere(
+      (r) => r['reservationId'] == reservationId,
+    );
+    if (index != -1) {
+      _reservations[index]['status'] = 'Completed';
+      if (_reservations[index]['paymentStatus'] == 'Payment pending') {
+        _reservations[index]['paymentStatus'] = 'Cancelled';
+      }
+      notifyListeners();
+    }
+  }
+
+  void cancelReservation(String reservationId) {
+    final index = _reservations.indexWhere(
+      (r) => r['reservationId'] == reservationId,
+    );
+    if (index != -1) {
+      _reservations[index]['status'] = 'Cancelled';
+      if (_reservations[index]['paymentStatus'] == 'Paid') {
+        _reservations[index]['paymentStatus'] = 'Refunded';
+      } else {
+        _reservations[index]['paymentStatus'] = 'Cancelled';
+      }
+      notifyListeners();
+    }
+  }
+
+  Map<String, dynamic>? getReservationById(String reservationId) {
+    try {
+      return _reservations.firstWhere(
+        (r) => r['reservationId'] == reservationId,
+      );
+    } catch (e) {
+      return null;
+    }
   }
 }

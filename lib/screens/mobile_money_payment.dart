@@ -2,17 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../models/reservation_manager.dart';
 import '../themes/colors.dart';
+import '../services/parking_service.dart';
+import '../services/notification_service.dart';
 
 class MobileMoneyPaymentScreen extends StatefulWidget {
   final int totalAmount;
   final String parkingName;
   final String parkingLocation;
+  final String? reservationId;
+  final int? parkingRecordId;
+  final String? vehiclePlate;
+  final String? slotNumber;
+  final String? duration;
+  final int? hours;
 
   const MobileMoneyPaymentScreen({
     super.key,
     this.totalAmount = 11500,
     this.parkingName = 'Acacia Mall Parking',
     this.parkingLocation = 'Kololo, Kampala',
+    this.reservationId,
+    this.parkingRecordId,
+    this.vehiclePlate,
+    this.slotNumber,
+    this.duration,
+    this.hours,
   });
 
   @override
@@ -24,6 +38,17 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
   String selectedProvider = 'MTN';
   final TextEditingController phoneController = TextEditingController();
   int selectedNavIndex = 0;
+  final _parkingService = ParkingService();
+
+  @override
+  void initState() {
+    super.initState();
+    print('💰 MobileMoneyPaymentScreen initialized');
+    print('   ReservationId: ${widget.reservationId}');
+    print('   ParkingRecordId: ${widget.parkingRecordId}');
+    print('   VehiclePlate: ${widget.vehiclePlate}');
+    print('   TotalAmount: ${widget.totalAmount}');
+  }
 
   @override
   void dispose() {
@@ -364,63 +389,86 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                           }
 
                           // Show payment processing dialog
-                          if (mounted) {
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    CircularProgressIndicator(
-                                      color: Color(0xFF5B6B9E),
-                                    ),
-                                    SizedBox(height: 20),
-                                    Text(
-                                      'Processing payment...',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Please check your phone for the payment prompt',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          if (!mounted) return;
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (dialogContext) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                            );
-                          }
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  CircularProgressIndicator(
+                                    color: Color(0xFF5B6B9E),
+                                  ),
+                                  SizedBox(height: 20),
+                                  Text(
+                                    'Processing payment...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Please check your phone for the payment prompt',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
 
-                          // Wait for 4 seconds
-                          await Future.delayed(const Duration(seconds: 4));
+                          try {
+                            // Simulate payment processing
+                            await Future.delayed(const Duration(seconds: 4));
 
-                          // Close the dialog
-                          if (mounted) {
+                            // Process payment in database
+                            if (widget.parkingRecordId != null &&
+                                widget.vehiclePlate != null) {
+                              // Complete the parking session and create transaction
+                              await _parkingService.vehicleExit(
+                                plateNumber: widget.vehiclePlate!,
+                                paymentMethod: 'mobile_money',
+                                phoneNumber: phoneController.text,
+                                attendantId: 'SYSTEM',
+                              );
+
+                              // Update reservation status
+                              if (widget.reservationId != null) {
+                                print(
+                                  '🔄 Updating payment status for: ${widget.reservationId}',
+                                );
+                                ReservationManager.instance
+                                    .updateReservationPaymentStatus(
+                                      widget.reservationId!,
+                                      'Paid',
+                                    );
+                                print('✅ Payment status update called');
+                              } else {
+                                print('❌ No reservationId provided!');
+                              }
+                            }
+
+                            // Close the dialog
+                            if (!mounted) return;
                             Navigator.of(context).pop();
 
-                            // Add reservation to manager
-                            ReservationManager.instance.addReservation({
-                              'location': widget.parkingName,
-                              'spot': 'Reserved Spot',
-                              'time': 'Today, 2 hrs',
-                              'cost':
-                                  'UGX ${_formatCurrency(widget.totalAmount)}',
-                              'status': 'Upcoming',
-                              'phone': phoneController.text,
-                              'provider': selectedProvider,
-                            });
+                            // Trigger payment success notification
+                            await NotificationService()
+                                .showPaymentCompletedNotification(
+                                  amount: widget.totalAmount.toDouble(),
+                                  parkingName: widget.parkingName,
+                                );
 
                             // Show success message
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: const Row(
@@ -441,10 +489,28 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                               ),
                             );
 
-                            // Navigate back to dashboard
+                            // Navigate back to dashboard Reserve tab
+                            if (!mounted) return;
                             Navigator.of(context).pushNamedAndRemoveUntil(
                               '/dashboard',
                               (route) => false,
+                              arguments: {
+                                'initialTab': 1, // Reserve tab
+                              },
+                            );
+                          } catch (e) {
+                            // Close dialog
+                            if (!mounted) return;
+                            Navigator.of(context).pop();
+
+                            // Show error
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Payment failed: $e'),
+                                backgroundColor: Colors.red.shade400,
+                                behavior: SnackBarBehavior.floating,
+                              ),
                             );
                           }
                         },

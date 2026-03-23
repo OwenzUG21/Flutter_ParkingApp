@@ -46,13 +46,44 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      displayName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          displayName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.pushNamed(
+                              context,
+                              '/edit-profile',
+                            );
+                            // Refresh profile if changes were made
+                            if (result == true && context.mounted) {
+                              // Trigger rebuild to show updated data
+                              (context as Element).markNeedsBuild();
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -76,7 +107,17 @@ class ProfileScreen extends StatelessWidget {
                   _buildMenuItem(
                     icon: Icons.person_outline,
                     title: 'Edit Profile',
-                    onTap: () {},
+                    onTap: () async {
+                      final result = await Navigator.pushNamed(
+                        context,
+                        '/edit-profile',
+                      );
+                      // Refresh profile if changes were made
+                      if (result == true && context.mounted) {
+                        // Trigger rebuild to show updated data
+                        (context as Element).markNeedsBuild();
+                      }
+                    },
                   ),
                   _buildMenuItem(
                     icon: Icons.lock_outline,

@@ -130,14 +130,31 @@ import 'package:project8/screens/parking_spots.dart';
 import 'package:project8/screens/mobile_money_payment.dart';
 import 'package:project8/screens/chat_screen.dart';
 import 'package:project8/screens/auth_wrapper.dart';
+import 'package:project8/screens/edit_profile_screen.dart';
+import 'package:project8/services/theme_service.dart';
+import 'package:project8/themes/app_theme.dart';
 import 'screens/login.dart';
 import 'screens/signup.dart';
 import 'screens/splash_screen.dart';
 import 'firebase_options.dart';
+import 'services/database_manager.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize databases (Isar + Hive)
+  await DatabaseManager().initialize();
+
+  // Initialize notification service
+  await NotificationService().initialize();
+
+  // Initialize theme service
+  await ThemeService().initialize();
+
   runApp(const ParkFlexApp());
 }
 
@@ -146,71 +163,92 @@ class ParkFlexApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "ParkFlexApp",
-
-      // Since AppTheme is NOT imported, we set a simple theme manually
-      theme: ThemeData(
-        scaffoldBackgroundColor: AppColor.background,
-        fontFamily: "Montserrat",
-      ),
-
-      initialRoute: '/splash',
-      routes: {
-        '/splash': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/auth': (context) => const AuthWrapper(),
-        '/dashboard': (context) => const DashboardScreen(),
-        '/signup': (context) => const SignupScreen(),
-        '/parking-spots': (context) => const ParkingSpotsScreen(),
-      },
-      onGenerateRoute: (settings) {
-        if (settings.name == '/booking') {
-          final args = settings.arguments as Map<String, dynamic>?;
-          return MaterialPageRoute(
-            builder: (context) => BookingScreen(
-              parkingName: args?['parkingName'] ?? 'Acacia Mall Parking',
-              parkingLocation: args?['parkingLocation'] ?? 'Kololo, Kampala',
-              spacesLeft: args?['spacesLeft'] ?? 45,
-              pricePerHour: args?['pricePerHour'] ?? 5000,
-              slotNumber: args?['slotNumber'] as int?,
-            ),
-          );
-        }
-        if (settings.name == '/reservation') {
-          final args = settings.arguments as Map<String, dynamic>?;
-          return MaterialPageRoute(
-            builder: (context) => ReservationDetailsScreen(
-              parkingName: args?['parkingName'] ?? 'Acacia Mall Parking',
-              parkingLocation: args?['parkingLocation'] ?? 'Kololo, Kampala',
-              date: args?['date'] ?? DateTime.now(),
-              duration: args?['duration'] ?? '2 Hr',
-              hours: args?['hours'] ?? 2,
-              parkingRate: args?['parkingRate'] ?? 10000,
-              serviceFee: args?['serviceFee'] ?? 1500,
-              totalCost: args?['totalCost'] ?? 11500,
-              slotNumber: args?['slotNumber'] as int?,
-              startTime: args?['startTime'] as TimeOfDay?,
-              vehiclePlate: args?['vehiclePlate'] as String?,
-              imagePath: args?['imagePath'] as String?,
-            ),
-          );
-        }
-        if (settings.name == '/mobile-money-payment') {
-          final args = settings.arguments as Map<String, dynamic>?;
-          return MaterialPageRoute(
-            builder: (context) => MobileMoneyPaymentScreen(
-              totalAmount: args?['totalAmount'] ?? 11500,
-              parkingName: args?['parkingName'] ?? 'Acacia Mall Parking',
-              parkingLocation: args?['parkingLocation'] ?? 'Kololo, Kampala',
-            ),
-          );
-        }
-        if (settings.name == '/chat') {
-          return MaterialPageRoute(builder: (context) => const ChatScreen());
-        }
-        return null;
+    return ListenableBuilder(
+      listenable: ThemeService(),
+      builder: (context, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: "ParkFlexApp",
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeService().themeMode,
+          initialRoute: '/splash',
+          routes: {
+            '/splash': (context) => const SplashScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/auth': (context) => const AuthWrapper(),
+            '/signup': (context) => const SignupScreen(),
+            '/parking-spots': (context) => const ParkingSpotsScreen(),
+            '/edit-profile': (context) => const EditProfileScreen(),
+          },
+          onGenerateRoute: (settings) {
+            if (settings.name == '/dashboard') {
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (context) =>
+                    DashboardScreen(initialTab: args?['initialTab'] as int?),
+              );
+            }
+            if (settings.name == '/booking') {
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (context) => BookingScreen(
+                  parkingName: args?['parkingName'] ?? 'Acacia Mall Parking',
+                  parkingLocation:
+                      args?['parkingLocation'] ?? 'Kololo, Kampala',
+                  spacesLeft: args?['spacesLeft'] ?? 45,
+                  pricePerHour: args?['pricePerHour'] ?? 5000,
+                  slotNumber: args?['slotNumber'] as int?,
+                ),
+              );
+            }
+            if (settings.name == '/reservation') {
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (context) => ReservationDetailsScreen(
+                  parkingName: args?['parkingName'] ?? 'Acacia Mall Parking',
+                  parkingLocation:
+                      args?['parkingLocation'] ?? 'Kololo, Kampala',
+                  date: args?['date'] ?? DateTime.now(),
+                  duration: args?['duration'] ?? '2 Hr',
+                  hours: args?['hours'] ?? 2,
+                  parkingRate: args?['parkingRate'] ?? 10000,
+                  serviceFee: args?['serviceFee'] ?? 1500,
+                  totalCost: args?['totalCost'] ?? 11500,
+                  slotNumber: args?['slotNumber'] as int?,
+                  startTime: args?['startTime'] as TimeOfDay?,
+                  vehiclePlate: args?['vehiclePlate'] as String?,
+                  imagePath: args?['imagePath'] as String?,
+                  reservationId: args?['reservationId'] as String?,
+                  parkingRecordId: args?['parkingRecordId'] as int?,
+                ),
+              );
+            }
+            if (settings.name == '/mobile-money-payment') {
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (context) => MobileMoneyPaymentScreen(
+                  totalAmount: args?['totalAmount'] ?? 11500,
+                  parkingName: args?['parkingName'] ?? 'Acacia Mall Parking',
+                  parkingLocation:
+                      args?['parkingLocation'] ?? 'Kololo, Kampala',
+                  reservationId: args?['reservationId'] as String?,
+                  parkingRecordId: args?['parkingRecordId'] as int?,
+                  vehiclePlate: args?['vehiclePlate'] as String?,
+                  slotNumber: args?['slotNumber'] as String?,
+                  duration: args?['duration'] as String?,
+                  hours: args?['hours'] as int?,
+                ),
+              );
+            }
+            if (settings.name == '/chat') {
+              return MaterialPageRoute(
+                builder: (context) => const ChatScreen(),
+              );
+            }
+            return null;
+          },
+        );
       },
     );
   }

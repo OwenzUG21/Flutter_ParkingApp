@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../themes/colors.dart';
+import '../services/parking_service.dart';
+import '../models/reservation_manager.dart';
+import '../services/notification_service.dart';
 
 void main() {
   runApp(const ParkingBookingApp());
@@ -48,6 +51,8 @@ class _BookingScreenState extends State<BookingScreen> {
   TimeOfDay? selectedTime;
   int selectedNavIndex = 0;
   final TextEditingController _vehiclePlateController = TextEditingController();
+  final _parkingService = ParkingService();
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -606,89 +611,206 @@ class _BookingScreenState extends State<BookingScreen> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (_vehiclePlateController.text.trim().isEmpty) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    'Please enter vehicle number plate',
-                                  ),
-                                  backgroundColor: Colors.red.shade400,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              );
-                            }
-                            return;
-                          }
+                        onPressed: _isProcessing
+                            ? null
+                            : () async {
+                                if (_vehiclePlateController.text
+                                    .trim()
+                                    .isEmpty) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          'Please enter vehicle number plate',
+                                        ),
+                                        backgroundColor: Colors.red.shade400,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
 
-                          if (selectedTime == null) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('Please select a time'),
-                                  backgroundColor: Colors.red.shade400,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              );
-                            }
-                            return;
-                          }
+                                if (selectedTime == null) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          'Please select a time',
+                                        ),
+                                        backgroundColor: Colors.red.shade400,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
 
-                          if (!_isTimeAvailable(selectedDate, selectedTime!)) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    'Please select a more recent time for today',
-                                  ),
-                                  backgroundColor: Colors.red.shade400,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              );
-                            }
-                            return;
-                          }
+                                if (!_isTimeAvailable(
+                                  selectedDate,
+                                  selectedTime!,
+                                )) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          'Please select a more recent time for today',
+                                        ),
+                                        backgroundColor: Colors.red.shade400,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
 
-                          // Calculate hours based on duration
-                          final hours = _durationHours();
+                                setState(() => _isProcessing = true);
 
-                          // Calculate total cost
-                          final parkingRate = widget.pricePerHour * hours;
-                          final serviceFee = (parkingRate * 0.15).round();
-                          final totalCost = parkingRate + serviceFee;
+                                try {
+                                  // Calculate hours based on duration
+                                  final hours = _durationHours();
+                                  final parkingRate =
+                                      widget.pricePerHour * hours;
+                                  final serviceFee = (parkingRate * 0.15)
+                                      .round();
+                                  final totalCost = parkingRate + serviceFee;
+                                  final plateNumber = _vehiclePlateController
+                                      .text
+                                      .trim()
+                                      .toUpperCase();
+                                  final slotNumber =
+                                      widget.slotNumber?.toString() ?? 'A001';
 
-                          // Navigate to reservation screen with details
-                          Navigator.pushNamed(
-                            context,
-                            '/reservation',
-                            arguments: {
-                              'parkingName': widget.parkingName,
-                              'parkingLocation': widget.parkingLocation,
-                              'date': selectedDate,
-                              'duration': selectedDuration,
-                              'hours': hours,
-                              'parkingRate': parkingRate,
-                              'serviceFee': serviceFee,
-                              'totalCost': totalCost,
-                              'slotNumber': widget.slotNumber,
-                              'startTime': selectedTime,
-                              'vehiclePlate': _vehiclePlateController.text
-                                  .trim()
-                                  .toUpperCase(),
-                              'imagePath': widget.imagePath,
-                            },
-                          );
-                        },
+                                  // Save to database - create parking record
+                                  final record = await _parkingService
+                                      .vehicleEntry(
+                                        plateNumber: plateNumber,
+                                        slotNumber: slotNumber,
+                                        vehicleType: 'car',
+                                        attendantId: 'SYSTEM',
+                                      );
+
+                                  // Add to reservation manager for UI display
+                                  final reservationId =
+                                      'RES-${DateTime.now().millisecondsSinceEpoch}';
+                                  final endTime = TimeOfDay(
+                                    hour: (selectedTime!.hour + hours) % 24,
+                                    minute: selectedTime!.minute,
+                                  );
+
+                                  ReservationManager.instance.addReservation({
+                                    'reservationId': reservationId,
+                                    'parkingRecordId': record.id,
+                                    'location': widget.parkingName,
+                                    'spot': plateNumber,
+                                    'address': widget.parkingLocation,
+                                    'date':
+                                        '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                                    'time':
+                                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                                    'timeRange':
+                                        '${_formatTime(selectedTime!)} - ${_formatTime(endTime)}',
+                                    'duration': selectedDuration,
+                                    'cost':
+                                        'UGX ${totalCost.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                                    'status':
+                                        DateTime.now().isBefore(selectedDate)
+                                        ? 'Upcoming'
+                                        : 'Active',
+                                    'paymentStatus': 'Payment pending',
+                                    'imagePath':
+                                        widget.imagePath ??
+                                        'lib/assets/images/bd.jpg',
+                                    'parkingRate': parkingRate,
+                                    'serviceFee': serviceFee,
+                                    'totalCost': totalCost,
+                                    'slotNumber': slotNumber,
+                                  });
+
+                                  print(
+                                    '📝 Created reservation: $reservationId with payment status: Payment pending',
+                                  );
+
+                                  setState(() => _isProcessing = false);
+
+                                  // Trigger booking completed notification
+                                  await NotificationService()
+                                      .showBookingCompletedNotification(
+                                        parkingName: widget.parkingName,
+                                        bookingDate: selectedDate,
+                                        slotNumber: slotNumber,
+                                      );
+
+                                  // Schedule notification for when booking becomes active
+                                  final bookingStartTime = DateTime(
+                                    selectedDate.year,
+                                    selectedDate.month,
+                                    selectedDate.day,
+                                    selectedTime!.hour,
+                                    selectedTime!.minute,
+                                  );
+
+                                  if (bookingStartTime.isAfter(
+                                    DateTime.now(),
+                                  )) {
+                                    await NotificationService()
+                                        .scheduleBookingActiveNotification(
+                                          parkingName: widget.parkingName,
+                                          scheduledTime: bookingStartTime,
+                                          slotNumber: slotNumber,
+                                          notificationId:
+                                              DateTime.now()
+                                                  .millisecondsSinceEpoch %
+                                              100000,
+                                        );
+                                  } else {
+                                    // If booking is for now, show parking started notification
+                                    await NotificationService()
+                                        .showParkingStartedNotification(
+                                          parkingName: widget.parkingName,
+                                          slotNumber: slotNumber,
+                                        );
+                                  }
+
+                                  if (mounted) {
+                                    // Navigate to dashboard Reserve tab
+                                    Navigator.pushNamedAndRemoveUntil(
+                                      context,
+                                      '/dashboard',
+                                      (route) => false,
+                                      arguments: {
+                                        'initialTab': 1, // Reserve tab index
+                                      },
+                                    );
+                                  }
+                                } catch (e) {
+                                  setState(() => _isProcessing = false);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error: $e'),
+                                        backgroundColor: Colors.red.shade400,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.redButton,
                           foregroundColor: Colors.white,
@@ -700,14 +822,23 @@ class _BookingScreenState extends State<BookingScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          'Proceed to Payment',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                        child: _isProcessing
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Proceed to Reserve',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),
