@@ -1,7 +1,5 @@
-import '../models/isar/parking_record.dart';
-import '../models/isar/parking_slot.dart';
-import '../models/isar/transaction.dart';
-import '../models/isar/vehicle_log.dart';
+import 'package:drift/drift.dart';
+import '../database/app_database.dart';
 import 'database_manager.dart';
 
 class ParkingService {
@@ -16,33 +14,44 @@ class ParkingService {
     String? attendantId,
   }) async {
     // Create parking record
-    final record = ParkingRecord()
-      ..plateNumber = plateNumber.toUpperCase()
-      ..entryTime = DateTime.now()
-      ..parkingSlot = slotNumber
-      ..vehicleType = vehicleType ?? 'car'
-      ..attendantId = attendantId
-      ..paymentStatus = 'pending';
-
-    final recordId = await _db.isar.addParkingRecord(record);
-    record.id = recordId;
+    final recordId = await _db.drift.addParkingRecord(
+      ParkingRecordsCompanion.insert(
+        plateNumber: plateNumber.toUpperCase(),
+        entryTime: DateTime.now(),
+        parkingSlot: slotNumber,
+        vehicleType: Value(vehicleType ?? 'car'),
+        attendantId: Value(attendantId),
+        paymentStatus: const Value('pending'),
+      ),
+    );
 
     // Update parking slot
-    final slot = await _db.isar.getSlotByNumber(slotNumber);
+    final slot = await _db.drift.getSlotByNumber(slotNumber);
     if (slot != null) {
-      slot.occupy(plateNumber.toUpperCase());
-      await _db.isar.updateSlot(slot);
+      await _db.drift.updateSlot(
+        ParkingSlotsCompanion(
+          id: Value(slot.id),
+          isOccupied: const Value(true),
+          currentPlateNumber: Value(plateNumber.toUpperCase()),
+          occupiedSince: Value(DateTime.now()),
+        ),
+      );
     }
 
     // Log activity
-    final log = VehicleLog.createEntry(
-      plateNumber.toUpperCase(),
-      slotNumber,
-      attendantId,
+    await _db.drift.addVehicleLog(
+      VehicleLogsCompanion.insert(
+        plateNumber: plateNumber.toUpperCase(),
+        timestamp: DateTime.now(),
+        activityType: 'entry',
+        parkingSlot: Value(slotNumber),
+        attendantId: Value(attendantId),
+        status: const Value('success'),
+        description: Value('Vehicle entered parking slot $slotNumber'),
+      ),
     );
-    await _db.isar.addVehicleLog(log);
 
-    return record;
+    return (await _db.drift.getParkingRecordById(recordId))!;
   }
 
   // ========== VEHICLE EXIT ==========
@@ -54,7 +63,7 @@ class ParkingService {
     String? attendantId,
   }) async {
     // Get active parking record
-    final record = await _db.isar.getActiveParkingByPlate(
+    final record = await _db.drift.getActiveParkingByPlate(
       plateNumber.toUpperCase(),
     );
     if (record == null) {
@@ -62,90 +71,108 @@ class ParkingService {
     }
 
     // Calculate duration and fee
-    record.exitTime = DateTime.now();
-    record.duration = record.calculateDuration();
-
-    // Calculate fee (example: 5000 UGX per hour)
-    final hours = (record.duration! / 60).ceil();
+    final exitTime = DateTime.now();
+    final duration = exitTime.difference(record.entryTime).inMinutes;
+    final hours = (duration / 60).ceil();
     final fee = hours * 5000.0;
-    record.amountCharged = fee;
-    record.paymentMethod = paymentMethod;
-    record.paymentStatus = 'paid';
 
-    await _db.isar.updateParkingRecord(record);
+    // Update parking record
+    await _db.drift.updateParkingRecord(
+      ParkingRecordsCompanion(
+        id: Value(record.id),
+        exitTime: Value(exitTime),
+        duration: Value(duration),
+        amountCharged: Value(fee),
+        paymentMethod: Value(paymentMethod),
+        paymentStatus: const Value('paid'),
+      ),
+    );
 
     // Release parking slot
-    final slot = await _db.isar.getSlotByNumber(record.parkingSlot);
+    final slot = await _db.drift.getSlotByNumber(record.parkingSlot);
     if (slot != null) {
-      slot.release();
-      await _db.isar.updateSlot(slot);
+      await _db.drift.updateSlot(
+        ParkingSlotsCompanion(
+          id: Value(slot.id),
+          isOccupied: const Value(false),
+          currentPlateNumber: const Value(null),
+          occupiedSince: const Value(null),
+        ),
+      );
     }
 
     // Create transaction
-    final transaction = Transaction()
-      ..plateNumber = plateNumber.toUpperCase()
-      ..transactionDate = DateTime.now()
-      ..durationMinutes = record.duration!
-      ..feePaid = fee
-      ..paymentMethod = paymentMethod
-      ..paymentStatus = 'completed'
-      ..phoneNumber = phoneNumber
-      ..attendantId = attendantId
-      ..parkingSlot = record.parkingSlot
-      ..entryTime = record.entryTime
-      ..exitTime = record.exitTime
-      ..serviceFee = 1500.0
-      ..totalAmount = fee + 1500.0
-      ..receiptNumber = 'RCP${DateTime.now().millisecondsSinceEpoch}';
-
-    await _db.isar.addTransaction(transaction);
+    final transactionId = await _db.drift.addTransaction(
+      TransactionsCompanion.insert(
+        plateNumber: plateNumber.toUpperCase(),
+        transactionDate: DateTime.now(),
+        durationMinutes: duration,
+        feePaid: fee,
+        paymentMethod: paymentMethod,
+        paymentStatus: 'completed',
+        phoneNumber: Value(phoneNumber),
+        attendantId: Value(attendantId),
+        parkingSlot: Value(record.parkingSlot),
+        entryTime: Value(record.entryTime),
+        exitTime: Value(exitTime),
+        serviceFee: const Value(1500.0),
+        totalAmount: Value(fee + 1500.0),
+        receiptNumber: Value('RCP${DateTime.now().millisecondsSinceEpoch}'),
+      ),
+    );
 
     // Log exit activity
-    final log = VehicleLog.createExit(
-      plateNumber.toUpperCase(),
-      record.parkingSlot,
-      fee,
+    await _db.drift.addVehicleLog(
+      VehicleLogsCompanion.insert(
+        plateNumber: plateNumber.toUpperCase(),
+        timestamp: DateTime.now(),
+        activityType: 'exit',
+        parkingSlot: Value(record.parkingSlot),
+        amount: Value(fee),
+        status: const Value('success'),
+        description: Value('Vehicle exited parking slot ${record.parkingSlot}'),
+      ),
     );
-    await _db.isar.addVehicleLog(log);
 
-    return transaction;
+    final allTransactions = await _db.drift.getAllTransactions();
+    return allTransactions.firstWhere((t) => t.id == transactionId);
   }
 
   // ========== SEARCH & QUERIES ==========
 
   Future<List<ParkingSlot>> getAvailableSlots() async {
-    return await _db.isar.getAvailableSlots();
+    return await _db.drift.getAvailableSlots();
   }
 
   Future<ParkingRecord?> findParkedVehicle(String plateNumber) async {
-    return await _db.isar.getActiveParkingByPlate(plateNumber.toUpperCase());
+    return await _db.drift.getActiveParkingByPlate(plateNumber.toUpperCase());
   }
 
   Future<List<Transaction>> getTodayTransactions() async {
-    return await _db.isar.getTransactionsByDate(DateTime.now());
+    return await _db.drift.getTransactionsByDate(DateTime.now());
   }
 
   Future<double> getTodayRevenue() async {
-    return await _db.isar.getDailyRevenue(DateTime.now());
+    return await _db.drift.getDailyRevenue(DateTime.now());
   }
 
   Future<List<VehicleLog>> getVehicleHistory(String plateNumber) async {
-    return await _db.isar.getLogsByPlate(plateNumber.toUpperCase());
+    return await _db.drift.getLogsByPlate(plateNumber.toUpperCase());
   }
 
   // ========== SLOT MANAGEMENT ==========
 
   Future<void> initializeParkingSlots(int totalSlots) async {
     for (int i = 1; i <= totalSlots; i++) {
-      final slot = ParkingSlot()
-        ..slotId = 'SLOT_$i'
-        ..slotNumber = 'A${i.toString().padLeft(3, '0')}'
-        ..isOccupied = false
-        ..slotType = 'regular'
-        ..floor = 'ground'
-        ..zone = 'A';
-
-      await _db.isar.addParkingSlot(slot);
+      await _db.drift.addParkingSlot(
+        ParkingSlotsCompanion.insert(
+          slotId: 'SLOT_$i',
+          slotNumber: 'A${i.toString().padLeft(3, '0')}',
+          slotType: const Value('regular'),
+          floor: const Value('ground'),
+          zone: const Value('A'),
+        ),
+      );
     }
   }
 }

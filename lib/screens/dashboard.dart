@@ -650,7 +650,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             // Image with badge overlay
             Stack(
               children: [
-
                 Container(
                   height: 130,
                   decoration: BoxDecoration(
@@ -658,7 +657,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                       topLeft: Radius.circular(16),
 
                       topRight: Radius.circular(16),
-
                     ),
                     image: DecorationImage(
                       image: AssetImage(lot.imagePath),

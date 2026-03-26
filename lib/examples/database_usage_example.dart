@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart';
 import '../services/database_manager.dart';
 import '../services/parking_service.dart';
-import '../models/hive/app_settings.dart';
-import '../models/hive/user_session.dart';
+import '../database/app_database.dart';
 
-/// Example demonstrating how to use Isar and Hive databases
+/// Example demonstrating how to use Drift database
 class DatabaseUsageExample extends StatefulWidget {
   const DatabaseUsageExample({super.key});
 
@@ -23,7 +23,7 @@ class _DatabaseUsageExampleState extends State<DatabaseUsageExample> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSection('Hive Examples (Settings & Session)'),
+          _buildSection('Settings & Session Examples'),
           _buildButton('Save App Settings', _saveSettings),
           _buildButton('Get App Settings', _getSettings),
           _buildButton('Save User Session', _saveSession),
@@ -31,7 +31,7 @@ class _DatabaseUsageExampleState extends State<DatabaseUsageExample> {
           _buildButton('Cache Data', _cacheExample),
 
           const SizedBox(height: 20),
-          _buildSection('Isar Examples (Parking Data)'),
+          _buildSection('Parking Data Examples'),
           _buildButton('Vehicle Entry', _vehicleEntry),
           _buildButton('Vehicle Exit', _vehicleExit),
           _buildButton('Find Parked Vehicle', _findVehicle),
@@ -61,43 +61,45 @@ class _DatabaseUsageExampleState extends State<DatabaseUsageExample> {
     );
   }
 
-  // ========== HIVE EXAMPLES ==========
+  // ========== SETTINGS EXAMPLES ==========
 
-  void _saveSettings() {
-    final settings = AppSettings(
-      themeMode: 'dark',
-      language: 'en',
-      notificationsEnabled: true,
-      currency: 'UGX',
-      defaultParkingRate: 5000.0,
+  void _saveSettings() async {
+    await _db.drift.saveSettings(
+      AppSettingsTableCompanion.insert(
+        themeMode: const Value('dark'),
+        language: const Value('en'),
+        notificationsEnabled: const Value(true),
+        currency: const Value('UGX'),
+        defaultParkingRate: const Value(5000.0),
+      ),
     );
-    _db.hive.saveSettings(settings);
     _showMessage('Settings saved!');
   }
 
-  void _getSettings() {
-    final settings = _db.hive.getSettings();
+  void _getSettings() async {
+    final settings = await _db.drift.getSettings();
     _showMessage(
-      'Theme: ${settings.themeMode}\nCurrency: ${settings.currency}',
+      'Theme: ${settings?.themeMode ?? 'N/A'}\nCurrency: ${settings?.currency ?? 'N/A'}',
     );
   }
 
-  void _saveSession() {
-    final session = UserSession(
-      userId: 'user123',
-      username: 'john_doe',
-      role: 'attendant',
-      email: 'john@example.com',
-      loginTime: DateTime.now(),
-      rememberMe: true,
+  void _saveSession() async {
+    await _db.drift.saveSession(
+      UserSessionsCompanion.insert(
+        userId: 'user123',
+        username: 'john_doe',
+        role: 'attendant',
+        email: const Value('john@example.com'),
+        loginTime: DateTime.now(),
+        rememberMe: const Value(true),
+      ),
     );
-    _db.hive.saveSession(session);
     _showMessage('Session saved!');
   }
 
-  void _checkLogin() {
-    final isLoggedIn = _db.hive.isLoggedIn();
-    final session = _db.hive.getSession();
+  void _checkLogin() async {
+    final isLoggedIn = await _db.drift.isLoggedIn();
+    final session = await _db.drift.getSession();
     _showMessage(
       isLoggedIn ? 'Logged in as: ${session?.username}' : 'Not logged in',
     );
@@ -105,17 +107,17 @@ class _DatabaseUsageExampleState extends State<DatabaseUsageExample> {
 
   void _cacheExample() async {
     // Cache data with 1 hour expiry
-    await _db.hive.cacheData(
+    await _db.drift.cacheData(
       'parking_rates',
       '{"regular": 5000, "vip": 10000}',
       expiry: const Duration(hours: 1),
     );
 
-    final cached = _db.hive.getCachedData('parking_rates');
+    final cached = await _db.drift.getCachedData('parking_rates');
     _showMessage('Cached data: $cached');
   }
 
-  // ========== ISAR EXAMPLES ==========
+  // ========== PARKING EXAMPLES ==========
 
   void _vehicleEntry() async {
     try {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' hide Column;
 import '../services/database_manager.dart';
 import '../services/parking_service.dart';
-import '../models/hive/app_settings.dart';
-import '../models/hive/user_session.dart';
+import '../database/app_database.dart';
 
 /// Simple test screen to verify database setup
 class TestDatabasesScreen extends StatefulWidget {
@@ -45,8 +45,8 @@ class _TestDatabasesScreenState extends State<TestDatabasesScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildTestButton('Test Hive (Settings)', _testHive),
-            _buildTestButton('Test Isar (Parking)', _testIsar),
+            _buildTestButton('Test Settings', _testSettings),
+            _buildTestButton('Test Parking', _testParking),
             _buildTestButton('Full Integration Test', _fullTest),
             _buildTestButton('Clear All Data', _clearData),
           ],
@@ -69,59 +69,60 @@ class _TestDatabasesScreenState extends State<TestDatabasesScreen> {
     );
   }
 
-  void _testHive() async {
+  void _testSettings() async {
     try {
-      setState(() => _output = 'Testing Hive...\n');
+      setState(() => _output = 'Testing Settings...\n');
 
       // Test settings
-      final settings = AppSettings(
-        themeMode: 'dark',
-        currency: 'UGX',
-        defaultParkingRate: 5000.0,
+      await _db.drift.saveSettings(
+        AppSettingsTableCompanion.insert(
+          themeMode: const Value('dark'),
+          currency: const Value('UGX'),
+          defaultParkingRate: const Value(5000.0),
+        ),
       );
-      await _db.hive.saveSettings(settings);
-      final saved = _db.hive.getSettings();
+      final saved = await _db.drift.getSettings();
 
       // Test session
-      final session = UserSession(
-        userId: 'test123',
-        username: 'test_user',
-        role: 'attendant',
-        loginTime: DateTime.now(),
+      await _db.drift.saveSession(
+        UserSessionsCompanion.insert(
+          userId: 'test123',
+          username: 'test_user',
+          role: 'attendant',
+          loginTime: DateTime.now(),
+        ),
       );
-      await _db.hive.saveSession(session);
-      final isLoggedIn = _db.hive.isLoggedIn();
+      final isLoggedIn = await _db.drift.isLoggedIn();
 
       // Test cache
-      await _db.hive.cacheData('test_key', 'test_value');
-      final cached = _db.hive.getCachedData('test_key');
+      await _db.drift.cacheData('test_key', 'test_value');
+      final cached = await _db.drift.getCachedData('test_key');
 
       setState(() {
         _output =
             '''
-✅ Hive Test Passed!
+✅ Settings Test Passed!
 
 Settings:
-- Theme: ${saved.themeMode}
-- Currency: ${saved.currency}
-- Rate: ${saved.defaultParkingRate}
+- Theme: ${saved?.themeMode ?? 'N/A'}
+- Currency: ${saved?.currency ?? 'N/A'}
+- Rate: ${saved?.defaultParkingRate ?? 'N/A'}
 
 Session:
 - Logged in: $isLoggedIn
-- Username: ${session.username}
 
 Cache:
 - Cached value: $cached
 ''';
       });
     } catch (e) {
-      setState(() => _output = '❌ Hive Test Failed:\n$e');
+      setState(() => _output = '❌ Settings Test Failed:\n$e');
     }
   }
 
-  void _testIsar() async {
+  void _testParking() async {
     try {
-      setState(() => _output = 'Testing Isar...\n');
+      setState(() => _output = 'Testing Parking...\n');
 
       // Initialize some slots
       await _parkingService.initializeParkingSlots(10);
@@ -143,7 +144,7 @@ Cache:
       setState(() {
         _output =
             '''
-✅ Isar Test Passed!
+✅ Parking Test Passed!
 
 Vehicle Entry:
 - Plate: ${record.plateNumber}
@@ -156,7 +157,7 @@ Parking Status:
 ''';
       });
     } catch (e) {
-      setState(() => _output = '❌ Isar Test Failed:\n$e');
+      setState(() => _output = '❌ Parking Test Failed:\n$e');
     }
   }
 

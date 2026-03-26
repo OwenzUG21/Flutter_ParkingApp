@@ -39,7 +39,7 @@ class NotificationService {
 
     // Initialize the plugin
     await _notifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
@@ -67,7 +67,7 @@ class NotificationService {
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
     // Handle notification tap - you can navigate to specific screens here
-    print('Notification tapped: ${response.payload}');
+    // TODO: Add navigation logic here
   }
 
   /// Show Payment Completed notification
@@ -102,10 +102,11 @@ class NotificationService {
     );
 
     await _notifications.show(
-      1, // Notification ID
-      'Payment Successful',
-      'Your parking payment of UGX ${amount.toStringAsFixed(0)} has been confirmed${parkingName != null ? ' for $parkingName' : ''}.',
-      details,
+      id: 1, // Notification ID
+      title: 'Payment Successful',
+      body:
+          'Your parking payment of UGX ${amount.toStringAsFixed(0)} has been confirmed${parkingName != null ? ' for $parkingName' : ''}.',
+      notificationDetails: details,
       payload: 'payment_completed',
     );
   }
@@ -142,10 +143,11 @@ class NotificationService {
     );
 
     await _notifications.show(
-      2, // Notification ID
-      'Parking Started',
-      'Your parking session is now active at $parkingName${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
-      details,
+      id: 2, // Notification ID
+      title: 'Parking Started',
+      body:
+          'Your parking session is now active at $parkingName${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
+      notificationDetails: details,
       payload: 'parking_started',
     );
   }
@@ -186,10 +188,11 @@ class NotificationService {
         '${bookingDate.day}/${bookingDate.month}/${bookingDate.year}';
 
     await _notifications.show(
-      3, // Notification ID
-      'Booking Confirmed',
-      'Your parking slot has been successfully booked at $parkingName for $dateStr${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
-      details,
+      id: 3, // Notification ID
+      title: 'Booking Confirmed',
+      body:
+          'Your parking slot has been successfully booked at $parkingName for $dateStr${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
+      notificationDetails: details,
       payload: 'booking_completed',
     );
   }
@@ -235,14 +238,13 @@ class NotificationService {
     );
 
     await _notifications.zonedSchedule(
-      notificationId ?? 4, // Notification ID
-      'Booking Active',
-      'Your reserved parking time is now active at $parkingName${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
-      scheduledDate,
-      details,
+      id: notificationId ?? 4, // Notification ID
+      title: 'Booking Active',
+      body:
+          'Your reserved parking time is now active at $parkingName${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
+      scheduledDate: scheduledDate,
+      notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'booking_active',
     );
   }
@@ -279,17 +281,17 @@ class NotificationService {
     );
 
     await _notifications.show(
-      5, // Notification ID
-      'Parking Expiring Soon',
-      'Your parking at $parkingName expires in $minutesLeft minutes.',
-      details,
+      id: 5, // Notification ID
+      title: 'Parking Expiring Soon',
+      body: 'Your parking at $parkingName expires in $minutesLeft minutes.',
+      notificationDetails: details,
       payload: 'parking_expiring',
     );
   }
 
   /// Cancel a specific notification
   Future<void> cancelNotification(int id) async {
-    await _notifications.cancel(id);
+    await _notifications.cancel(id: id);
   }
 
   /// Cancel all notifications
