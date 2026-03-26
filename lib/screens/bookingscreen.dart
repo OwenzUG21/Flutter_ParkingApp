@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../themes/colors.dart';
 import '../services/parking_service.dart';
-import '../models/reservation_manager.dart';
+import '../services/booking_service.dart';
 import '../services/notification_service.dart';
 
 void main() {
@@ -52,6 +52,7 @@ class _BookingScreenState extends State<BookingScreen> {
   int selectedNavIndex = 0;
   final TextEditingController _vehiclePlateController = TextEditingController();
   final _parkingService = ParkingService();
+  final _bookingService = BookingService();
   bool _isProcessing = false;
 
   @override
@@ -391,8 +392,12 @@ class _BookingScreenState extends State<BookingScreen> {
                         final date = await showDatePicker(
                           context: context,
                           initialDate: selectedDate,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2026),
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 365),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
                           builder: (context, child) {
                             return Theme(
                               data: Theme.of(context).copyWith(
@@ -696,54 +701,31 @@ class _BookingScreenState extends State<BookingScreen> {
                                   final slotNumber =
                                       widget.slotNumber?.toString() ?? 'A001';
 
-                                  // Save to database - create parking record
-                                  final record = await _parkingService
-                                      .vehicleEntry(
-                                        plateNumber: plateNumber,
-                                        slotNumber: slotNumber,
-                                        vehicleType: 'car',
-                                        attendantId: 'SYSTEM',
-                                      );
-
-                                  // Add to reservation manager for UI display
-                                  final reservationId =
-                                      'RES-${DateTime.now().millisecondsSinceEpoch}';
-                                  final endTime = TimeOfDay(
-                                    hour: (selectedTime!.hour + hours) % 24,
-                                    minute: selectedTime!.minute,
+                                  // Calculate booking start time
+                                  final bookingStartTime = DateTime(
+                                    selectedDate.year,
+                                    selectedDate.month,
+                                    selectedDate.day,
+                                    selectedTime!.hour,
+                                    selectedTime!.minute,
                                   );
 
-                                  ReservationManager.instance.addReservation({
-                                    'reservationId': reservationId,
-                                    'parkingRecordId': record.id,
-                                    'location': widget.parkingName,
-                                    'spot': plateNumber,
-                                    'address': widget.parkingLocation,
-                                    'date':
-                                        '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
-                                    'time':
-                                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                                    'timeRange':
-                                        '${_formatTime(selectedTime!)} - ${_formatTime(endTime)}',
-                                    'duration': selectedDuration,
-                                    'cost':
-                                        'UGX ${totalCost.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-                                    'status':
-                                        DateTime.now().isBefore(selectedDate)
-                                        ? 'Upcoming'
-                                        : 'Active',
-                                    'paymentStatus': 'Payment pending',
-                                    'imagePath':
-                                        widget.imagePath ??
-                                        'lib/assets/images/bd.jpg',
-                                    'parkingRate': parkingRate,
-                                    'serviceFee': serviceFee,
-                                    'totalCost': totalCost,
-                                    'slotNumber': slotNumber,
-                                  });
+                                  // Create booking in database (this persists!)
+                                  final booking = await _bookingService
+                                      .createBooking(
+                                        plateNumber: plateNumber,
+                                        slotNumber: slotNumber,
+                                        startTime: bookingStartTime,
+                                        durationHours: hours,
+                                        parkingRate: parkingRate.toDouble(),
+                                        serviceFee: serviceFee.toDouble(),
+                                        vehicleType: 'car',
+                                        notes:
+                                            'Booking from ${widget.parkingName}',
+                                      );
 
                                   print(
-                                    '📝 Created reservation: $reservationId with payment status: Payment pending',
+                                    '✅ Booking created in database: ID ${booking.id}, Plate: $plateNumber, Slot: $slotNumber',
                                   );
 
                                   setState(() => _isProcessing = false);
@@ -757,14 +739,6 @@ class _BookingScreenState extends State<BookingScreen> {
                                       );
 
                                   // Schedule notification for when booking becomes active
-                                  final bookingStartTime = DateTime(
-                                    selectedDate.year,
-                                    selectedDate.month,
-                                    selectedDate.day,
-                                    selectedTime!.hour,
-                                    selectedTime!.minute,
-                                  );
-
                                   if (bookingStartTime.isAfter(
                                     DateTime.now(),
                                   )) {
@@ -795,6 +769,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                       (route) => false,
                                       arguments: {
                                         'initialTab': 1, // Reserve tab index
+                                        'bookingId':
+                                            booking.id, // Pass booking ID
                                       },
                                     );
                                   }
@@ -803,7 +779,9 @@ class _BookingScreenState extends State<BookingScreen> {
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Error: $e'),
+                                        content: Text(
+                                          'Error creating booking: $e',
+                                        ),
                                         backgroundColor: Colors.red.shade400,
                                         behavior: SnackBarBehavior.floating,
                                       ),

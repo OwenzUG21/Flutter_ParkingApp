@@ -146,7 +146,7 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize databases (Isar + Hive)
+  // Initialize databases (Isar + Hive + Drift)
   await DatabaseManager().initialize();
 
   // Initialize notification service

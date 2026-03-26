@@ -10,6 +10,7 @@ class AppColors {
   static const Color cardBackground = Color(0xFFFFFFFF);
 }
 
+
 class ParkingMapScreen extends StatefulWidget {
   const ParkingMapScreen({super.key});
 

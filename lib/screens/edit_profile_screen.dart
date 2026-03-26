@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
+import '../services/user_profile_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -14,11 +15,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  final _profileService = UserProfileService();
 
   File? _profileImage;
   File? _backgroundImage;
   bool _isLoading = false;
+  String? _existingProfilePath;
+  String? _existingBackgroundPath;
 
   @override
   void initState() {
@@ -26,10 +31,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserData();
   }
 
-  void _loadUserData() {
+  Future<void> _loadUserData() async {
     final user = AuthService().currentUser;
-    _nameController.text = user?.displayName ?? '';
-    _emailController.text = user?.email ?? '';
+    if (user != null) {
+      _nameController.text = user.displayName ?? '';
+      _emailController.text = user.email ?? '';
+
+      // Load profile data from database
+      final username = user.email?.split('@')[0] ?? 'user';
+      final profile = await _profileService.getUserProfile(username);
+
+      if (profile != null && mounted) {
+        setState(() {
+          _nameController.text = profile.fullName ?? '';
+          _emailController.text = profile.email ?? '';
+          _phoneController.text = profile.phoneNumber ?? '';
+          _existingProfilePath = profile.profileImagePath;
+          _existingBackgroundPath = profile.backgroundImagePath;
+        });
+
+        // Load existing images
+        if (profile.profileImagePath != null) {
+          final file = await _profileService.getProfileImageFile(username);
+          if (file != null && mounted) {
+            setState(() => _profileImage = file);
+          }
+        }
+
+        if (profile.backgroundImagePath != null) {
+          final file = await _profileService.getBackgroundImageFile(username);
+          if (file != null && mounted) {
+            setState(() => _backgroundImage = file);
+          }
+        }
+      }
+    }
   }
 
   Future<void> _pickImage(ImageSource source, bool isProfile) async {
@@ -146,11 +182,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement actual profile update with Firebase
-      // This would include uploading images to Firebase Storage
-      // and updating user profile in Firestore
+      final user = AuthService().currentUser;
+      if (user == null) {
+        throw Exception('No user logged in');
+      }
 
-      await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+      final username = user.email?.split('@')[0] ?? 'user';
+
+      // Save profile with file storage integration
+      await _profileService.saveUserProfile(
+        username: username,
+        fullName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phoneNumber: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
+        role: 'user',
+        profileImage:
+            _profileImage != null && _profileImage!.path != _existingProfilePath
+            ? _profileImage
+            : null,
+        backgroundImage:
+            _backgroundImage != null &&
+                _backgroundImage!.path != _existingBackgroundPath
+            ? _backgroundImage
+            : null,
+      );
 
       if (mounted) {
         _showSnackBar('Profile updated successfully!');
@@ -182,6 +239,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -421,6 +479,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 }
                                 return null;
                               },
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Phone Field
+                            _buildTextField(
+                              controller: _phoneController,
+                              label: 'Phone Number (Optional)',
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
                             ),
 
                             const SizedBox(height: 32),

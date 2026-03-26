@@ -3,7 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
-import '../models/reservation_manager.dart';
+import '../services/booking_service.dart';
+import '../database/app_database.dart';
 import '../themes/colors.dart';
 import '../services/auth_service.dart';
 import '../services/theme_service.dart';
@@ -42,6 +43,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   int selectedNavIndex = 0;
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   final List<ParkingLot> _parkingLots = [
     ParkingLot(
@@ -153,8 +156,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     _timer?.cancel();
     super.dispose();
+  }
+
+  List<ParkingLot> get _filteredParkingLots {
+    if (_searchQuery.isEmpty) {
+      return _parkingLots;
+    }
+    return _parkingLots.where((lot) {
+      return lot.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          lot.location.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
   }
 
   @override
@@ -537,12 +551,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                       ],
                     ),
                     child: Row(
-                      children: const [
-                        Icon(Icons.search, color: Colors.grey),
-                        SizedBox(width: 12),
+                      children: [
+                        const Icon(Icons.search, color: Colors.grey),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: TextField(
-                            decoration: InputDecoration(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                            },
+                            decoration: const InputDecoration(
                               hintText: 'Search parking locations...',
                               border: InputBorder.none,
                               hintStyle: TextStyle(color: Colors.grey),
@@ -552,7 +572,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                             ),
                           ),
                         ),
-                        Icon(Icons.tune, color: Colors.grey),
+                        if (_searchQuery.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        else
+                          const Icon(Icons.tune, color: Colors.grey),
                       ],
                     ),
                   ),
@@ -564,18 +595,49 @@ class _DashboardScreenState extends State<DashboardScreen>
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.65,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: _parkingLots.length,
-                  itemBuilder: (context, index) {
-                    return _buildParkingCard(_parkingLots[index]);
-                  },
-                ),
+                child: _filteredParkingLots.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No parking locations found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Try a different search term',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.65,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
+                        itemCount: _filteredParkingLots.length,
+                        itemBuilder: (context, index) {
+                          return _buildParkingCard(_filteredParkingLots[index]);
+                        },
+                      ),
               ),
             ),
           ],
@@ -881,6 +943,12 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
     with AutomaticKeepAliveClientMixin {
   int _selectedSubTab = 0;
   final Set<int> _expandedHistoryItems = {};
+  final _bookingService = BookingService();
+
+  List<ParkingRecord> _activeBookings = [];
+  List<ParkingRecord> _upcomingBookings = [];
+  List<ParkingRecord> _completedBookings = [];
+  bool _isLoading = true;
 
   @override
   bool get wantKeepAlive => true;
@@ -888,19 +956,34 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   @override
   void initState() {
     super.initState();
-    // Listen to reservation changes
-    ReservationManager.instance.addListener(_onReservationChanged);
+    _loadBookings();
   }
 
   @override
   void dispose() {
-    ReservationManager.instance.removeListener(_onReservationChanged);
     super.dispose();
   }
 
-  void _onReservationChanged() {
-    if (mounted) {
-      setState(() {});
+  Future<void> _loadBookings() async {
+    setState(() => _isLoading = true);
+    try {
+      final active = await _bookingService.getActiveBookings();
+      final upcoming = await _bookingService.getUpcomingBookings();
+      final completed = await _bookingService.getCompletedBookings();
+
+      if (mounted) {
+        setState(() {
+          _activeBookings = active;
+          _upcomingBookings = upcoming;
+          _completedBookings = completed;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading bookings: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -908,25 +991,54 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Refresh when returning to this tab
-    setState(() {});
+    _loadBookings();
   }
 
-  List<Map<String, dynamic>> get _activeReservations {
-    return ReservationManager.instance.reservations
-        .where((r) => r['status'] == 'Active')
-        .toList();
-  }
+  List<ParkingRecord> get _activeReservations => _activeBookings;
+  List<ParkingRecord> get _upcomingReservations => _upcomingBookings;
+  List<ParkingRecord> get _historyReservations => _completedBookings;
 
-  List<Map<String, dynamic>> get _upcomingReservations {
-    return ReservationManager.instance.reservations
-        .where((r) => r['status'] == 'Upcoming')
-        .toList();
-  }
+  // Helper method to convert ParkingRecord to Map for UI compatibility
+  Map<String, dynamic> _bookingToMap(ParkingRecord booking) {
+    final isUpcoming = booking.entryTime.isAfter(DateTime.now());
+    final isActive =
+        booking.entryTime.isBefore(DateTime.now()) && booking.exitTime == null;
 
-  List<Map<String, dynamic>> get _historyReservations {
-    return ReservationManager.instance.reservations
-        .where((r) => r['status'] != 'Active' && r['status'] != 'Upcoming')
-        .toList();
+    String status;
+    if (booking.exitTime != null) {
+      status = 'Completed';
+    } else if (isUpcoming) {
+      status = 'Upcoming';
+    } else {
+      status = 'Active';
+    }
+
+    final duration = booking.duration != null
+        ? '${(booking.duration! / 60).ceil()} Hr'
+        : '2 Hr';
+
+    return {
+      'reservationId': 'RES-${booking.id}',
+      'parkingRecordId': booking.id,
+      'location': 'Parking Location', // You can enhance this
+      'spot': booking.plateNumber,
+      'address': 'Slot ${booking.parkingSlot}',
+      'date':
+          '${booking.entryTime.year}-${booking.entryTime.month.toString().padLeft(2, '0')}-${booking.entryTime.day.toString().padLeft(2, '0')}',
+      'time':
+          '${booking.entryTime.day}/${booking.entryTime.month}/${booking.entryTime.year}',
+      'timeRange':
+          '${booking.entryTime.hour.toString().padLeft(2, '0')}:${booking.entryTime.minute.toString().padLeft(2, '0')}',
+      'duration': duration,
+      'cost': 'UGX ${(booking.amountCharged ?? 0).toStringAsFixed(0)}',
+      'status': status,
+      'paymentStatus': booking.paymentStatus ?? 'pending',
+      'imagePath': 'lib/assets/images/bd.jpg',
+      'parkingRate': booking.amountCharged ?? 0,
+      'serviceFee': (booking.amountCharged ?? 0) * 0.15,
+      'totalCost': (booking.amountCharged ?? 0) * 1.15,
+      'slotNumber': booking.parkingSlot,
+    };
   }
 
   @override
@@ -997,6 +1109,10 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   }
 
   Widget _buildActiveSessionsContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_activeReservations.isEmpty) {
       return _buildEmptyState(
         icon: Icons.event_available,
@@ -1009,12 +1125,18 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       padding: const EdgeInsets.all(16),
       itemCount: _activeReservations.length,
       itemBuilder: (context, index) {
-        return _buildModernReservationCard(_activeReservations[index]);
+        return _buildModernReservationCard(
+          _bookingToMap(_activeReservations[index]),
+        );
       },
     );
   }
 
   Widget _buildUpcomingContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_upcomingReservations.isEmpty) {
       return _buildEmptyState(
         icon: Icons.schedule,
@@ -1027,12 +1149,18 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       padding: const EdgeInsets.all(16),
       itemCount: _upcomingReservations.length,
       itemBuilder: (context, index) {
-        return _buildModernReservationCard(_upcomingReservations[index]);
+        return _buildModernReservationCard(
+          _bookingToMap(_upcomingReservations[index]),
+        );
       },
     );
   }
 
   Widget _buildHistoryContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_historyReservations.isEmpty) {
       return _buildEmptyState(
         icon: Icons.history,
@@ -1045,7 +1173,10 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       padding: const EdgeInsets.all(16),
       itemCount: _historyReservations.length,
       itemBuilder: (context, index) {
-        return _buildHistoryCard(_historyReservations[index], index);
+        return _buildHistoryCard(
+          _bookingToMap(_historyReservations[index]),
+          index,
+        );
       },
     );
   }
@@ -1683,37 +1814,62 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                                   child: const Text('Cancel'),
                                 ),
                                 ElevatedButton(
-                                  onPressed: () {
-                                    // End the session
-                                    ReservationManager.instance.endSession(
-                                      reservation['reservationId'],
-                                    );
-                                    Navigator.pop(dialogContext);
-                                    // Refresh the UI
-                                    setState(() {});
+                                  onPressed: () async {
+                                    // End the session by canceling the booking
+                                    try {
+                                      final bookingId =
+                                          reservation['parkingRecordId'];
+                                      await _bookingService.cancelBooking(
+                                        bookingId,
+                                      );
+                                      Navigator.pop(dialogContext);
+                                      // Refresh the UI
+                                      await _loadBookings();
 
-                                    // Show success message
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Row(
-                                          children: [
-                                            Icon(
-                                              Icons.check_circle,
-                                              color: Colors.white,
+                                      // Show success message
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: const Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.check_circle,
+                                                  color: Colors.white,
+                                                ),
+                                                SizedBox(width: 12),
+                                                Text(
+                                                  'Session ended successfully',
+                                                ),
+                                              ],
                                             ),
-                                            SizedBox(width: 12),
-                                            Text('Session ended successfully'),
-                                          ],
-                                        ),
-                                        backgroundColor: Colors.green.shade600,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
+                                            backgroundColor:
+                                                Colors.green.shade600,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
                                           ),
-                                        ),
-                                      ),
-                                    );
+                                        );
+                                      }
+                                    } catch (e) {
+                                      Navigator.pop(dialogContext);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Error ending session: $e',
+                                            ),
+                                            backgroundColor:
+                                                Colors.red.shade600,
+                                          ),
+                                        );
+                                      }
+                                    }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red.shade600,
@@ -2448,28 +2604,51 @@ class PaymentTabContent extends StatefulWidget {
 class _PaymentTabContentState extends State<PaymentTabContent> {
   bool _showAllHistory = false;
   final int _maxVisibleHistory = 3;
+  final _bookingService = BookingService();
+  List<ParkingRecord> _allBookings = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookings();
+  }
+
+  Future<void> _loadBookings() async {
+    setState(() => _isLoading = true);
+    try {
+      final bookings = await _bookingService.getAllBookings();
+      if (mounted) {
+        setState(() {
+          _allBookings = bookings;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading bookings: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   double get _totalSpent {
-    final payments = ReservationManager.instance.reservations;
     double total = 0;
-    for (final payment in payments) {
-      final costStr = payment['cost'] ?? 'UGX 0';
-      final amount =
-          double.tryParse(
-            costStr.replaceAll('UGX', '').replaceAll(',', '').trim(),
-          ) ??
-          0;
-      total += amount;
+    for (final booking in _allBookings) {
+      total += booking.amountCharged ?? 0;
     }
     return total;
   }
 
   @override
   Widget build(BuildContext context) {
-    final payments = ReservationManager.instance.reservations;
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final visiblePayments = _showAllHistory
-        ? payments
-        : payments.take(_maxVisibleHistory).toList();
+        ? _allBookings
+        : _allBookings.take(_maxVisibleHistory).toList();
 
     return Container(
       color: const Color(0xFFF5F7FA),
@@ -2491,7 +2670,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
             const SizedBox(height: 24),
 
             // Billing History Section
-            _buildBillingHistorySection(visiblePayments, payments.length),
+            _buildBillingHistorySection(visiblePayments, _allBookings.length),
           ],
         ),
       ),
@@ -2848,7 +3027,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
   }
 
   Widget _buildBillingHistorySection(
-    List<Map<String, dynamic>> visiblePayments,
+    List<ParkingRecord> visiblePayments,
     int totalCount,
   ) {
     return Container(
@@ -2958,17 +3137,18 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     );
   }
 
-  Widget _buildHistoryItem(Map<String, dynamic> payment) {
-    final provider = payment['provider'] ?? 'Cash';
-    final phone = payment['phone'] ?? 'N/A';
-    final location = payment['location'] ?? 'Unknown Location';
-    final time = payment['time'] ?? '';
-    final cost = payment['cost'] ?? 'UGX 0';
+  Widget _buildHistoryItem(ParkingRecord payment) {
+    final provider = payment.paymentMethod ?? 'Cash';
+    final phone = payment.plateNumber; // Use plate number
+    final location = 'Slot ${payment.parkingSlot}';
+    final time =
+        '${payment.entryTime.day}/${payment.entryTime.month}/${payment.entryTime.year}';
+    final cost = 'UGX ${(payment.amountCharged ?? 0).toStringAsFixed(0)}';
 
     Color providerColor = Colors.grey;
-    if (provider == 'MTN') {
+    if (provider.toLowerCase().contains('mtn')) {
       providerColor = Colors.yellow.shade700;
-    } else if (provider == 'Airtel') {
+    } else if (provider.toLowerCase().contains('airtel')) {
       providerColor = Colors.red.shade600;
     } else if (provider == 'Africell') {
       providerColor = Colors.blue.shade700;

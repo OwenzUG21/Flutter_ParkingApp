@@ -1,7 +1,90 @@
 import 'package:flutter/material.dart';
 
-class ParkingSpotsScreen extends StatelessWidget {
+class ParkingSpotsScreen extends StatefulWidget {
   const ParkingSpotsScreen({super.key});
+
+  @override
+  State<ParkingSpotsScreen> createState() => _ParkingSpotsScreenState();
+}
+
+class _ParkingSpotsScreenState extends State<ParkingSpotsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  final List<Map<String, dynamic>> _parkingSpots = [
+    {
+      'name': 'Acacia Mall Parking',
+      'location': 'Kololo, Kampala',
+      'spacesLeft': 45,
+      'price': 5000,
+      'color': const Color(0xFF5B6B9E),
+    },
+    {
+      'name': 'Garden City Parking',
+      'location': 'Kampala Road',
+      'spacesLeft': 32,
+      'price': 4500,
+      'color': const Color(0xFFFF6B6B),
+    },
+    {
+      'name': 'Oasis Mall Parking',
+      'location': 'Yusuf Lule Road',
+      'spacesLeft': 18,
+      'price': 6000,
+      'color': const Color(0xFF4CAF50),
+    },
+    {
+      'name': 'Kampala Road Parking',
+      'location': 'City Center',
+      'spacesLeft': 8,
+      'price': 3500,
+      'color': const Color(0xFFB8956A),
+    },
+    {
+      'name': 'Lugogo Mall Parking',
+      'location': 'Lugogo Bypass',
+      'spacesLeft': 56,
+      'price': 5500,
+      'color': const Color(0xFF5B6B9E),
+    },
+    {
+      'name': 'Forest Mall Parking',
+      'location': 'Lugogo',
+      'spacesLeft': 23,
+      'price': 4000,
+      'color': const Color(0xFFFF6B6B),
+    },
+    {
+      'name': 'Village Mall Parking',
+      'location': 'Bugolobi',
+      'spacesLeft': 12,
+      'price': 7000,
+      'color': const Color(0xFF4CAF50),
+    },
+    {
+      'name': 'Metroplex Mall Parking',
+      'location': 'Naalya',
+      'spacesLeft': 67,
+      'price': 6500,
+      'color': const Color(0xFFB8956A),
+    },
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filteredParkingSpots {
+    if (_searchQuery.isEmpty) {
+      return _parkingSpots;
+    }
+    return _parkingSpots.where((spot) {
+      return spot['name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          spot['location'].toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,18 +126,11 @@ class ParkingSpotsScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: const [
-                        Icon(
-                          Icons.location_on,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                        Icon(Icons.location_on, color: Colors.white, size: 20),
                         SizedBox(width: 8),
                         Text(
                           'Current Location',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),
@@ -68,7 +144,7 @@ class ParkingSpotsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Search Bar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -77,26 +153,43 @@ class ParkingSpotsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
-                        children: const [
-                          Icon(Icons.search, color: Colors.grey),
-                          SizedBox(width: 12),
+                        children: [
+                          const Icon(Icons.search, color: Colors.grey),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: TextField(
-                              decoration: InputDecoration(
+                              controller: _searchController,
+                              onChanged: (value) {
+                                setState(() {
+                                  _searchQuery = value;
+                                });
+                              },
+                              decoration: const InputDecoration(
                                 hintText: 'Search parking spots...',
                                 border: InputBorder.none,
                                 hintStyle: TextStyle(color: Colors.grey),
                               ),
                             ),
                           ),
-                          Icon(Icons.tune, color: Colors.grey),
+                          if (_searchQuery.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          else
+                            const Icon(Icons.tune, color: Colors.grey),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               // Map Section
               Container(
                 height: 200,
@@ -141,7 +234,9 @@ class ParkingSpotsScreen extends StatelessWidget {
                               Text(
                                 'Map View',
                                 style: TextStyle(
-                                  color: const Color(0xFF5B6B9E).withOpacity(0.7),
+                                  color: const Color(
+                                    0xFF5B6B9E,
+                                  ).withOpacity(0.7),
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -182,7 +277,7 @@ class ParkingSpotsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               // Parking Spots List
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -198,85 +293,53 @@ class ParkingSpotsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Acacia Mall Parking',
-                      'Kololo, Kampala',
-                      45,
-                      5000,
-                      const Color(0xFF5B6B9E),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Garden City Parking',
-                      'Kampala Road',
-                      32,
-                      4500,
-                      const Color(0xFFFF6B6B),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Oasis Mall Parking',
-                      'Yusuf Lule Road',
-                      18,
-                      6000,
-                      const Color(0xFF4CAF50),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Kampala Road Parking',
-                      'City Center',
-                      8,
-                      3500,
-                      const Color(0xFFB8956A),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Lugogo Mall Parking',
-                      'Lugogo Bypass',
-                      56,
-                      5500,
-                      const Color(0xFF5B6B9E),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Forest Mall Parking',
-                      'Lugogo',
-                      23,
-                      4000,
-                      const Color(0xFFFF6B6B),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Village Mall Parking',
-                      'Bugolobi',
-                      12,
-                      7000,
-                      const Color(0xFF4CAF50),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    _buildParkingSpot(
-                      context,
-                      'Metroplex Mall Parking',
-                      'Naalya',
-                      67,
-                      6500,
-                      const Color(0xFFB8956A),
-                    ),
+
+                    if (_filteredParkingSpots.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No parking spots found',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Try a different search term',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      ..._filteredParkingSpots.map((spot) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildParkingSpot(
+                            context,
+                            spot['name'],
+                            spot['location'],
+                            spot['spacesLeft'],
+                            spot['price'],
+                            spot['color'],
+                          ),
+                        );
+                      }).toList(),
                   ],
                 ),
               ),
@@ -322,91 +385,86 @@ class ParkingSpotsScreen extends StatelessWidget {
           ],
         ),
         child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.local_parking, color: color, size: 32),
             ),
-            child: Icon(
-              Icons.local_parking,
-              color: color,
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  location,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.local_parking,
-                      size: 16,
-                      color: spacesLeft > 20 ? const Color(0xFF4CAF50) : 
-                             spacesLeft > 10 ? Colors.orange : Colors.red,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        '$spacesLeft spaces left',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: spacesLeft > 20 ? const Color(0xFF4CAF50) : 
-                                 spacesLeft > 10 ? Colors.orange : Colors.red,
-                          fontWeight: FontWeight.w600,
+                  const SizedBox(height: 4),
+                  Text(
+                    location,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.local_parking,
+                        size: 16,
+                        color: spacesLeft > 20
+                            ? const Color(0xFF4CAF50)
+                            : spacesLeft > 10
+                            ? Colors.orange
+                            : Colors.red,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '$spacesLeft spaces left',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: spacesLeft > 20
+                                ? const Color(0xFF4CAF50)
+                                : spacesLeft > 10
+                                ? Colors.orange
+                                : Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'UGX ${price.toString().replaceAllMapped(
-                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                          (Match m) => '${m[1]},',
-                        )}/hr',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'UGX ${price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}/hr',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: Colors.grey,
-          ),
-        ],
-      ),
+            const SizedBox(width: 8),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

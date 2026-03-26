@@ -1,15 +1,65 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/user_profile_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final user = AuthService().currentUser;
-    final displayName = user?.displayName ?? 'User';
-    final email = user?.email ?? 'No email';
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _profileService = UserProfileService();
+  File? _profileImage;
+  File? _backgroundImage;
+  String _displayName = 'User';
+  String _email = 'No email';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final user = AuthService().currentUser;
+    if (user != null) {
+      final username = user.email?.split('@')[0] ?? 'user';
+      final profile = await _profileService.getUserProfile(username);
+
+      if (profile != null && mounted) {
+        setState(() {
+          _displayName = profile.fullName ?? user.displayName ?? 'User';
+          _email = profile.email ?? user.email ?? 'No email';
+        });
+
+        // Load images
+        if (profile.profileImagePath != null) {
+          final file = await _profileService.getProfileImageFile(username);
+          if (file != null && mounted) {
+            setState(() => _profileImage = file);
+          }
+        }
+
+        if (profile.backgroundImagePath != null) {
+          final file = await _profileService.getBackgroundImageFile(username);
+          if (file != null && mounted) {
+            setState(() => _backgroundImage = file);
+          }
+        }
+      } else {
+        setState(() {
+          _displayName = user.displayName ?? 'User';
+          _email = user.email ?? 'No email';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
@@ -19,12 +69,20 @@ class ProfileScreen extends StatelessWidget {
               // Header with gradient
               Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF5B6B9E), Color(0xFF6B7AB8)],
-                  ),
+                decoration: BoxDecoration(
+                  gradient: _backgroundImage == null
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF5B6B9E), Color(0xFF6B7AB8)],
+                        )
+                      : null,
+                  image: _backgroundImage != null
+                      ? DecorationImage(
+                          image: FileImage(_backgroundImage!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
                 ),
                 child: Column(
                   children: [
@@ -35,14 +93,19 @@ class ProfileScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 4),
                       ),
-                      child: const CircleAvatar(
+                      child: CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Color(0xFF5B6B9E),
-                        ),
+                        backgroundImage: _profileImage != null
+                            ? FileImage(_profileImage!)
+                            : null,
+                        child: _profileImage == null
+                            ? const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Color(0xFF5B6B9E),
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -50,7 +113,7 @@ class ProfileScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          displayName,
+                          _displayName,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -65,9 +128,8 @@ class ProfileScreen extends StatelessWidget {
                               '/edit-profile',
                             );
                             // Refresh profile if changes were made
-                            if (result == true && context.mounted) {
-                              // Trigger rebuild to show updated data
-                              (context as Element).markNeedsBuild();
+                            if (result == true && mounted) {
+                              await _loadProfileData();
                             }
                           },
                           child: Container(
@@ -87,7 +149,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      email,
+                      _email,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
@@ -113,9 +175,8 @@ class ProfileScreen extends StatelessWidget {
                         '/edit-profile',
                       );
                       // Refresh profile if changes were made
-                      if (result == true && context.mounted) {
-                        // Trigger rebuild to show updated data
-                        (context as Element).markNeedsBuild();
+                      if (result == true && mounted) {
+                        await _loadProfileData();
                       }
                     },
                   ),
@@ -250,7 +311,7 @@ class ProfileScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),

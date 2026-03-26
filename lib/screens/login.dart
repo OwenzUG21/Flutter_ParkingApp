@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../themes/colors.dart';
 import '../widgets/inputs.dart';
 import '../services/auth_service.dart';
+import '../services/preferences_service.dart';
 import 'signup.dart' as signup;
 
 class LoginScreen extends StatefulWidget {
@@ -18,11 +19,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
+  PreferencesService? _prefsService;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _initializePreferences();
     // Pre-fill the fields if data is provided
     if (widget.prefilledEmail != null) {
       _emailController.text = widget.prefilledEmail!;
@@ -30,6 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (widget.prefilledPassword != null) {
       _passwordController.text = widget.prefilledPassword!;
     }
+  }
+
+  Future<void> _initializePreferences() async {
+    _prefsService = await PreferencesService.getInstance();
   }
 
   @override
@@ -49,11 +56,22 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _authService.signInWithEmailAndPassword(
+      final userCredential = await _authService.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // After successful login, navigate to auth wrapper which will handle showing dashboard
+
+      // Save user data to SharedPreferences
+      if (_prefsService != null && userCredential != null) {
+        await _prefsService!.saveUsername(
+          userCredential.user?.displayName ?? 'User',
+        );
+        await _prefsService!.saveUserEmail(_emailController.text.trim());
+        await _prefsService!.saveLoginStatus(true);
+        await _prefsService!.saveLastScreen('/dashboard');
+      }
+
+      // After successful login, navigate to auth wrapper
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
       }

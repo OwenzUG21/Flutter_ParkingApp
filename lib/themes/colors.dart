@@ -11,6 +11,9 @@ class AppColors {
   static const Color greyLight = Color(0xFFE5E5E5);
   static const Color grey = Colors.grey;
 
+  // Card background for containers
+  static const Color cardBackground = Color(0xFF1E1E1E);
+
   // Aliases used by UI screens (keeps names consistent with design)
   static const Color primaryText = white;
   static const Color secondaryText = white70;

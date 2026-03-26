@@ -37,6 +37,10 @@ class UserDataTable extends Table {
   TextColumn get permissions => text().nullable()(); // JSON string
   TextColumn get shiftSchedule => text().nullable()();
   TextColumn get loginHistory => text().nullable()(); // JSON string
+  TextColumn get profileImagePath =>
+      text().nullable()(); // File path to profile image
+  TextColumn get backgroundImagePath =>
+      text().nullable()(); // File path to background image
 }
 
 // Transactions Table
@@ -93,6 +97,9 @@ class ParkingRecords extends Table {
   TextColumn get vehicleType => text().nullable()();
   TextColumn get attendantId => text().nullable()();
   TextColumn get notes => text().nullable()();
+  TextColumn get vehicleImagePath =>
+      text().nullable()(); // File path to vehicle image
+  TextColumn get receiptPath => text().nullable()(); // File path to receipt
 }
 
 // Cache Data Table
@@ -154,7 +161,26 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from == 1) {
+        // Add new columns for file paths
+        await migrator.addColumn(userDataTable, userDataTable.profileImagePath);
+        await migrator.addColumn(
+          userDataTable,
+          userDataTable.backgroundImagePath,
+        );
+        await migrator.addColumn(
+          parkingRecords,
+          parkingRecords.vehicleImagePath,
+        );
+        await migrator.addColumn(parkingRecords, parkingRecords.receiptPath);
+      }
+    },
+  );
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
