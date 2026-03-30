@@ -3,11 +3,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:lottie/lottie.dart';
 import '../services/booking_service.dart';
 import '../database/app_database.dart';
 import '../themes/colors.dart';
 import '../services/auth_service.dart';
 import '../services/theme_service.dart';
+import '../services/weather_service.dart';
+import '../widgets/notification_badge.dart';
 import 'profile_screen.dart';
 import 'community_screen.dart';
 import 'settings_screen.dart';
@@ -53,7 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 40,
       availableSlots: 18,
       pricePerHour: 1500,
-      imagePath: 'lib/assets/images/bd.jpg',
+      imagePath: 'assets/images/bd.jpg',
       rating: 4.5,
     ),
     ParkingLot(
@@ -62,7 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 36,
       availableSlots: 12,
       pricePerHour: 2000,
-      imagePath: 'lib/assets/images/Kampala-ciuty.jpg',
+      imagePath: 'assets/images/Kampala-ciuty.jpg',
       rating: 4.8,
     ),
     ParkingLot(
@@ -71,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 32,
       availableSlots: 9,
       pricePerHour: 1500,
-      imagePath: 'lib/assets/images/ka1.jpg',
+      imagePath: 'assets/images/ka1.jpg',
       rating: 4.2,
     ),
     ParkingLot(
@@ -80,7 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 78,
       availableSlots: 45,
       pricePerHour: 3500,
-      imagePath: 'lib/assets/images/Jinja-Town.jpg',
+      imagePath: 'assets/images/Jinja-Town.jpg',
       rating: 4.5,
     ),
     ParkingLot(
@@ -89,7 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 68,
       availableSlots: 35,
       pricePerHour: 2800,
-      imagePath: 'lib/assets/images/Jinja.jpg',
+      imagePath: 'assets/images/Jinja.jpg',
       rating: 4.2,
     ),
     ParkingLot(
@@ -98,7 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 84,
       availableSlots: 28,
       pricePerHour: 2200,
-      imagePath: 'lib/assets/images/own.webp',
+      imagePath: 'assets/images/own.webp',
       rating: 4.0,
     ),
     ParkingLot(
@@ -107,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 65,
       availableSlots: 55,
       pricePerHour: 1200,
-      imagePath: 'lib/assets/images/bd.jpg',
+      imagePath: 'assets/images/bd.jpg',
       rating: 4.5,
     ),
     ParkingLot(
@@ -116,13 +119,15 @@ class _DashboardScreenState extends State<DashboardScreen>
       totalSlots: 55,
       availableSlots: 32,
       pricePerHour: 2500,
-      imagePath: 'lib/assets/images/ka1.jpg',
+      imagePath: 'assets/images/ka1.jpg',
       rating: 4.3,
     ),
   ];
 
   Timer? _timer;
   final Random _random = Random();
+  final WeatherService _weatherService = WeatherService();
+  WeatherData? _currentWeather;
 
   @override
   void initState() {
@@ -151,6 +156,18 @@ class _DashboardScreenState extends State<DashboardScreen>
         }
       });
     });
+
+    // Fetch weather data
+    _fetchWeather();
+  }
+
+  Future<void> _fetchWeather() async {
+    final weather = await _weatherService.getWeather('Kampala');
+    if (mounted) {
+      setState(() {
+        _currentWeather = weather;
+      });
+    }
   }
 
   @override
@@ -173,13 +190,14 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: _buildDrawer(context),
       body: SafeArea(child: _getSelectedScreen()),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           boxShadow: [
             BoxShadow(
               blurRadius: 20,
@@ -236,8 +254,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildDrawer(BuildContext context) {
+    final theme = Theme.of(context);
     return Drawer(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.brightness == Brightness.dark
+          ? theme.colorScheme.surface
+          : AppColors.background,
       child: SafeArea(
         child: Column(
           children: [
@@ -250,38 +271,42 @@ class _DashboardScreenState extends State<DashboardScreen>
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.brightness == Brightness.dark
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Center(
-                      child: Text(
-                        "P",
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF121212),
-                        ),
+                    child: Center(
+                      child: Lottie.asset(
+                        'assets/animations/parking_logo.json',
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.contain,
+                        repeat: true,
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     "ParkFlexApp",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: theme.colorScheme.onSurface,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     "Smart Parking Solutions",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Divider(color: Colors.white24),
+            Divider(color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
 
             // Menu Items
             Expanded(
@@ -338,7 +363,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                     },
                   ),
                   const SizedBox(height: 8),
-                  const Divider(color: Colors.white24),
+                  Divider(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                  ),
                   const SizedBox(height: 8),
                   // Dark Mode Toggle
                   Padding(
@@ -348,13 +375,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.dark_mode, color: Colors.white),
+                        Icon(
+                          Icons.dark_mode,
+                          color: theme.colorScheme.onSurface,
+                        ),
                         const SizedBox(width: 16),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Dark Mode',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: theme.colorScheme.onSurface,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
@@ -374,7 +404,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Divider(color: Colors.white24),
+                  Divider(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                  ),
                   const SizedBox(height: 16),
                   _buildDrawerItem(
                     icon: Icons.logout_rounded,
@@ -400,23 +432,25 @@ class _DashboardScreenState extends State<DashboardScreen>
     required String title,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
     return ListTile(
-      leading: Icon(icon, color: Colors.white),
+      leading: Icon(icon, color: theme.colorScheme.onSurface),
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: theme.colorScheme.onSurface,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
       ),
       onTap: onTap,
-      hoverColor: Colors.white.withValues(alpha: 0.1),
+      hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
   Widget _buildDashboardContent() {
+    final theme = Theme.of(context);
     return Column(
       children: [
         // Professional App Bar
@@ -424,7 +458,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           height: 60,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -437,34 +471,46 @@ class _DashboardScreenState extends State<DashboardScreen>
             children: [
               Builder(
                 builder: (context) => IconButton(
-                  icon: const Icon(Icons.menu, color: Color(0xFF5B6B9E)),
+                  icon: Icon(Icons.menu, color: theme.colorScheme.primary),
                   onPressed: () {
                     Scaffold.of(context).openDrawer();
                   },
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'ParkFlex',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF5B6B9E),
+                  color: theme.colorScheme.primary,
                   letterSpacing: 0.5,
                 ),
               ),
+              const Spacer(),
+              NotificationBadge(
+                onTap: () {
+                  Navigator.pushNamed(context, '/notifications').then((_) {
+                    // Refresh badge count when returning from notifications screen
+                    setState(() {});
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
             ],
           ),
         ),
 
         // Tab Bar
         Container(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           child: TabBar(
             controller: _tabController,
-            indicatorColor: const Color(0xFF5B6B9E),
-            labelColor: const Color(0xFF5B6B9E),
-            unselectedLabelColor: Colors.grey,
+            indicatorColor: theme.colorScheme.primary,
+            labelColor: theme.colorScheme.primary,
+            unselectedLabelColor: theme.brightness == Brightness.dark
+                ? Colors.grey.shade400
+                : Colors.grey,
             labelStyle: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -479,7 +525,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
         Expanded(
           child: Container(
-            color: const Color(0xFFF5F7FA),
+            color: theme.scaffoldBackgroundColor,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -495,6 +541,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildFindParkingTab() {
+    final theme = Theme.of(context);
     return Stack(
       children: [
         Column(
@@ -502,37 +549,108 @@ class _DashboardScreenState extends State<DashboardScreen>
             // Search Bar and Current Location (only in Parking tab)
             Container(
               padding: const EdgeInsets.all(16),
-              color: const Color(0xFFF5F7FA),
+              color: theme.scaffoldBackgroundColor,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Current Location
+                  // Current Location with Weather on Right
                   Row(
                     children: [
-                      Icon(
-                        Icons.location_on,
-                        color: Colors.grey.shade600,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Current Location',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      // Left side - Location info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Current Location',
+                                  style: TextStyle(
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade600,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Kampala, Uganda',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      // Right side - Weather info
+                      if (_currentWeather != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _currentWeather!.weatherIcon,
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${_currentWeather!.temperature.round()}°C',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Kampala, Uganda',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
                   ),
                   const SizedBox(height: 12),
 
@@ -540,7 +658,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
@@ -552,7 +670,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.search, color: Colors.grey),
+                        Icon(
+                          Icons.search,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextField(
@@ -562,11 +685,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 _searchQuery = value;
                               });
                             },
-                            decoration: const InputDecoration(
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                            ),
+                            decoration: InputDecoration(
                               hintText: 'Search parking locations...',
                               border: InputBorder.none,
-                              hintStyle: TextStyle(color: Colors.grey),
-                              contentPadding: EdgeInsets.symmetric(
+                              hintStyle: TextStyle(
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.grey.shade500
+                                    : Colors.grey,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
                                 vertical: 14,
                               ),
                             ),
@@ -574,7 +704,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                         if (_searchQuery.isNotEmpty)
                           IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            icon: Icon(
+                              Icons.clear,
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey,
+                            ),
                             onPressed: () {
                               setState(() {
                                 _searchController.clear();
@@ -583,7 +718,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                             },
                           )
                         else
-                          const Icon(Icons.tune, color: Colors.grey),
+                          Icon(
+                            Icons.tune,
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.grey.shade400
+                                : Colors.grey,
+                          ),
                       ],
                     ),
                   ),
@@ -672,6 +812,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildParkingCard(ParkingLot lot) {
+    final theme = Theme.of(context);
     final availabilityPercent = lot.availableSlots / lot.totalSlots;
     Color availabilityColor;
     String availabilityText;
@@ -696,7 +837,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -815,10 +956,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 children: [
                   Text(
                     lot.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: theme.colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -829,7 +970,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                       Icon(
                         Icons.location_on,
                         size: 11,
-                        color: Colors.grey.shade600,
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                       ),
                       const SizedBox(width: 2),
                       Expanded(
@@ -837,7 +980,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                           lot.location,
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey.shade600,
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -857,7 +1002,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                             '${lot.availableSlots}/${lot.totalSlots}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey.shade700,
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade700,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -869,15 +1016,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF5B6B9E).withValues(alpha: 0.1),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
                           'UGX ${lot.pricePerHour}/hr',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF5B6B9E),
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ),
@@ -967,6 +1116,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   Future<void> _loadBookings() async {
     setState(() => _isLoading = true);
     try {
+      // Update booking statuses first
+      await _bookingService.updateBookingStatuses();
+
       final active = await _bookingService.getActiveBookings();
       final upcoming = await _bookingService.getUpcomingBookings();
       final completed = await _bookingService.getCompletedBookings();
@@ -1001,16 +1153,36 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   // Helper method to convert ParkingRecord to Map for UI compatibility
   Map<String, dynamic> _bookingToMap(ParkingRecord booking) {
     final isUpcoming = booking.entryTime.isAfter(DateTime.now());
-    final isActive =
-        booking.entryTime.isBefore(DateTime.now()) && booking.exitTime == null;
+    final dbPaymentStatus = booking.paymentStatus ?? 'pending';
 
     String status;
+    String displayPaymentStatus;
+
     if (booking.exitTime != null) {
-      status = 'Completed';
+      // Session has ended - in History
+      if (dbPaymentStatus == 'cancelled') {
+        status = 'Cancelled';
+        displayPaymentStatus = 'cancelled';
+      } else if (dbPaymentStatus == 'unpaid') {
+        status = 'Completed';
+        displayPaymentStatus = 'unpaid';
+      } else if (dbPaymentStatus == 'completed' || dbPaymentStatus == 'paid') {
+        status = 'Completed';
+        displayPaymentStatus = 'paid';
+      } else {
+        status = 'Completed';
+        displayPaymentStatus = dbPaymentStatus;
+      }
     } else if (isUpcoming) {
+      // Session hasn't started yet - in Upcoming
       status = 'Upcoming';
+      displayPaymentStatus =
+          dbPaymentStatus; // Keep original: 'pending' or 'paid'
     } else {
+      // Session is running - in Active
       status = 'Active';
+      displayPaymentStatus =
+          dbPaymentStatus; // Keep original: 'pending' or 'paid'
     }
 
     final duration = booking.duration != null
@@ -1032,11 +1204,11 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       'duration': duration,
       'cost': 'UGX ${(booking.amountCharged ?? 0).toStringAsFixed(0)}',
       'status': status,
-      'paymentStatus': booking.paymentStatus ?? 'pending',
-      'imagePath': 'lib/assets/images/bd.jpg',
-      'parkingRate': booking.amountCharged ?? 0,
-      'serviceFee': (booking.amountCharged ?? 0) * 0.15,
-      'totalCost': (booking.amountCharged ?? 0) * 1.15,
+      'paymentStatus': displayPaymentStatus,
+      'imagePath': 'assets/images/bd.jpg',
+      'parkingRate': booking.amountCharged ?? 0.0,
+      'serviceFee': (booking.amountCharged ?? 0.0) * 0.15,
+      'totalCost': (booking.amountCharged ?? 0.0) * 1.15,
       'slotNumber': booking.parkingSlot,
     };
   }
@@ -1044,14 +1216,15 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+    final theme = Theme.of(context);
     return Container(
-      color: const Color(0xFFF5F7FA),
+      color: theme.scaffoldBackgroundColor,
       child: Column(
         children: [
           // Pill-style Sub-tabs
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             child: Row(
               children: [
                 _buildPillTab('Active Sessions', 0, _activeReservations.length),
@@ -1070,6 +1243,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   }
 
   Widget _buildPillTab(String label, int index, int count) {
+    final theme = Theme.of(context);
     final isSelected = _selectedSubTab == index;
     final displayLabel = index == 0 ? label.replaceAll(' Sessions', '') : label;
     return Expanded(
@@ -1078,14 +1252,20 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF5B6B9E) : Colors.grey.shade100,
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.brightness == Brightness.dark
+                ? theme.colorScheme.surfaceContainerHighest
+                : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(25),
           ),
           child: Text(
             index == 0 ? displayLabel : '$displayLabel ($count)',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey.shade700,
+              color: isSelected
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
@@ -1182,13 +1362,26 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   }
 
   Widget _buildHistoryCard(Map<String, dynamic> reservation, int index) {
+    final theme = Theme.of(context);
     final isExpanded = _expandedHistoryItems.contains(index);
-    final status = reservation['status'] ?? 'Completed';
+    final paymentStatus = reservation['paymentStatus'] ?? 'pending';
+
+    // Determine status based on payment status
+    String status;
+    if (paymentStatus == 'cancelled') {
+      status = 'Cancelled';
+    } else if (paymentStatus == 'unpaid') {
+      status = 'Unpaid';
+    } else if (paymentStatus == 'completed' || paymentStatus == 'paid') {
+      status = 'Completed';
+    } else {
+      status = reservation['status'] ?? 'Completed';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1216,10 +1409,10 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                         children: [
                           Text(
                             reservation['location'] ?? 'Unknown Location',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: Color(0xFF111827),
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1227,7 +1420,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                             reservation['spot'] ?? '',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
                         ],
@@ -1244,14 +1439,16 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                     Icon(
                       Icons.calendar_today,
                       size: 14,
-                      color: Colors.grey.shade600,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       reservation['time'] ?? '',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -1265,7 +1462,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: theme.brightness == Brightness.dark
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1278,17 +1477,19 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                                 'Duration',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade600,
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 reservation['duration'] ?? '2h 0m',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF111827),
+                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -1302,17 +1503,19 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                                 'Amount',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade600,
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 reservation['cost'] ?? '',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF5B6B9E),
+                                  color: theme.colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -1334,8 +1537,12 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                         icon: const Icon(Icons.print, size: 16),
                         label: const Text('Print'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF5B6B9E),
-                          side: BorderSide(color: Colors.grey.shade300),
+                          foregroundColor: theme.colorScheme.primary,
+                          side: BorderSide(
+                            color: theme.brightness == Brightness.dark
+                                ? theme.colorScheme.outline
+                                : Colors.grey.shade300,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -1361,8 +1568,12 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                         ),
                         label: Text(isExpanded ? 'View Less' : 'View More'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF5B6B9E),
-                          side: BorderSide(color: Colors.grey.shade300),
+                          foregroundColor: theme.colorScheme.primary,
+                          side: BorderSide(
+                            color: theme.brightness == Brightness.dark
+                                ? theme.colorScheme.outline
+                                : Colors.grey.shade300,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -1392,6 +1603,10 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       case 'completed':
         bgColor = Colors.green.shade50;
         dotColor = Colors.green.shade600;
+        break;
+      case 'unpaid':
+        bgColor = Colors.orange.shade50;
+        dotColor = Colors.orange.shade600;
         break;
       default:
         bgColor = Colors.grey.shade100;
@@ -1427,6 +1642,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   }
 
   Widget _buildModernReservationCard(Map<String, dynamic> reservation) {
+    final theme = Theme.of(context);
     final status = reservation['status'] ?? 'Active';
     final paymentStatus = reservation['paymentStatus'] ?? 'Payment pending';
     final reservationId = reservation['reservationId'] ?? 'Unknown';
@@ -1436,16 +1652,27 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       '🎴 Building card for $reservationId - Status: $status, Payment: $paymentStatus',
     );
 
-    // Normalize payment status display - handle both "Payment completed" and "Paid"
-    final displayPaymentStatus =
-        (paymentStatus == 'Payment completed' || paymentStatus == 'Paid')
-        ? 'Paid'
-        : paymentStatus;
+    // Normalize payment status display
+    String displayPaymentStatus;
+    if (paymentStatus == 'paid' ||
+        paymentStatus == 'Payment completed' ||
+        paymentStatus == 'Paid') {
+      displayPaymentStatus = 'Paid';
+    } else if (paymentStatus == 'pending' ||
+        paymentStatus == 'Payment pending') {
+      displayPaymentStatus = 'Pending';
+    } else if (paymentStatus == 'unpaid') {
+      displayPaymentStatus = 'Unpaid';
+    } else if (paymentStatus == 'cancelled') {
+      displayPaymentStatus = 'Cancelled';
+    } else {
+      displayPaymentStatus = paymentStatus;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -1470,7 +1697,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                   ),
                   image: DecorationImage(
                     image: AssetImage(
-                      reservation['imagePath'] ?? 'lib/assets/images/bd.jpg',
+                      reservation['imagePath'] ?? 'assets/images/bd.jpg',
                     ),
                     fit: BoxFit.cover,
                   ),
@@ -1535,17 +1762,19 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                             reservation['spot'] ?? 'ZCDV',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             reservation['location'] ?? 'Boazi Parking',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF111827),
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1554,7 +1783,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                                 '8 Nakasero Ln, Kampala, Uganda',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
                         ],
@@ -1614,10 +1845,10 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                         const SizedBox(height: 6),
                         Text(
                           reservation['cost'] ?? 'UGX 5000.00',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF111827),
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -1629,7 +1860,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: theme.brightness == Brightness.dark
+                        ? theme.colorScheme.surfaceContainerHighest
+                        : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -1659,7 +1892,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: theme.brightness == Brightness.dark
+                        ? theme.colorScheme.surfaceContainerHighest
+                        : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -1689,8 +1924,12 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                           // View Pass
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5B6B9E),
-                          foregroundColor: Colors.white,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -1709,9 +1948,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                           // Print
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF5B6B9E),
+                          foregroundColor: theme.colorScheme.primary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: Color(0xFF5B6B9E)),
+                          side: BorderSide(color: theme.colorScheme.primary),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1767,9 +2006,23 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                                     ) ??
                                     2,
                                 'parkingRate':
-                                    reservation['parkingRate'] ?? 10000,
-                                'serviceFee': reservation['serviceFee'] ?? 1500,
-                                'totalCost': reservation['totalCost'] ?? 11500,
+                                    (reservation['parkingRate'] is double
+                                        ? (reservation['parkingRate'] as double)
+                                              .toInt()
+                                        : reservation['parkingRate']) ??
+                                    10000,
+                                'serviceFee':
+                                    (reservation['serviceFee'] is double
+                                        ? (reservation['serviceFee'] as double)
+                                              .toInt()
+                                        : reservation['serviceFee']) ??
+                                    1500,
+                                'totalCost':
+                                    (reservation['totalCost'] is double
+                                        ? (reservation['totalCost'] as double)
+                                              .toInt()
+                                        : reservation['totalCost']) ??
+                                    11500,
                                 'slotNumber': int.tryParse(
                                   reservation['slotNumber']?.toString() ?? '',
                                 ),
@@ -2008,20 +2261,21 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final availableCount = widget.lot.availableSlots;
     final totalCount = widget.lot.totalSlots;
     final occupancyRate = ((totalCount - availableCount) / totalCount * 100)
         .toInt();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           // Hero Image Header with Gradient
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            backgroundColor: const Color(0xFF5B6B9E),
+            backgroundColor: theme.colorScheme.primary,
             leading: IconButton(
               icon: Container(
                 padding: const EdgeInsets.all(8),
@@ -2207,7 +2461,7 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -2220,18 +2474,23 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Select Your Parking Slot',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Tap on an available slot to proceed with booking',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 20),
 
@@ -2295,7 +2554,7 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -2308,12 +2567,12 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Facilities & Features',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -2352,7 +2611,7 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
           ? Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.1),
@@ -2371,10 +2630,10 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                         children: [
                           Text(
                             'Slot S$_selectedSlot Selected',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -2382,7 +2641,9 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                             'UGX ${widget.lot.pricePerHour}/hour',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
                         ],
@@ -2391,8 +2652,10 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                     ElevatedButton(
                       onPressed: () => _openBooking(_selectedSlot!),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5B6B9E),
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
                           vertical: 16,
@@ -2432,53 +2695,61 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
     required String subtitle,
     required Color color,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return Builder(
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 24),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -2487,20 +2758,25 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
     required String label,
     required IconData icon,
   }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[700],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+    return Builder(
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -2509,26 +2785,31 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
     required bool isBooked,
     required bool isSelected,
   }) {
+    final theme = Theme.of(context);
     Color bgColor;
     Color borderColor;
     Color iconColor;
     Color textColor;
 
     if (isBooked) {
-      bgColor = Colors.grey.shade100;
-      borderColor = Colors.grey.shade300;
-      iconColor = Colors.grey.shade400;
-      textColor = Colors.grey.shade400;
+      bgColor = theme.brightness == Brightness.dark
+          ? theme.colorScheme.surfaceContainerHighest
+          : Colors.grey.shade100;
+      borderColor = theme.brightness == Brightness.dark
+          ? theme.colorScheme.outline
+          : Colors.grey.shade300;
+      iconColor = theme.colorScheme.onSurface.withValues(alpha: 0.4);
+      textColor = theme.colorScheme.onSurface.withValues(alpha: 0.4);
     } else if (isSelected) {
       bgColor = Colors.green.shade50;
       borderColor = Colors.green;
       iconColor = Colors.green;
       textColor = Colors.green.shade700;
     } else {
-      bgColor = const Color(0xFF5B6B9E).withValues(alpha: 0.05);
-      borderColor = const Color(0xFF5B6B9E).withValues(alpha: 0.3);
-      iconColor = const Color(0xFF5B6B9E);
-      textColor = const Color(0xFF5B6B9E);
+      bgColor = theme.colorScheme.primary.withValues(alpha: 0.05);
+      borderColor = theme.colorScheme.primary.withValues(alpha: 0.3);
+      iconColor = theme.colorScheme.primary;
+      textColor = theme.colorScheme.primary;
     }
 
     return GestureDetector(
@@ -2565,30 +2846,35 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
   }
 
   Widget _buildFacilityChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF5B6B9E).withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF5B6B9E).withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF5B6B9E)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF5B6B9E),
-              fontWeight: FontWeight.w600,
+    return Builder(
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
             ),
           ),
-        ],
-      ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -2642,6 +2928,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -2651,7 +2938,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
         : _allBookings.take(_maxVisibleHistory).toList();
 
     return Container(
-      color: const Color(0xFFF5F7FA),
+      color: theme.scaffoldBackgroundColor,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -2678,10 +2965,11 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -2697,7 +2985,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2706,13 +2994,18 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       'Manage your payment methods and view history',
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -2796,10 +3089,11 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     required String meta,
     required Color metaColor,
   }) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -2821,7 +3115,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                   title,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 2,
@@ -2842,10 +3136,10 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: theme.colorScheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -2863,10 +3157,11 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
   }
 
   Widget _buildPaymentMethodsSection() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -2882,13 +3177,13 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Saved Payment Methods',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: theme.colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -2899,7 +3194,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add New'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF5B6B9E),
+                  foregroundColor: theme.colorScheme.primary,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
               ),
@@ -2912,7 +3207,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                 child: _buildPaymentMethodCard(
                   title: 'MTN Mobile Money',
                   subtitle: 'Add during payment',
-                  imagePath: 'lib/assets/lines/mtn.png',
+                  imagePath: 'assets/lines/mtn.png',
                   buttonText: 'Add',
                 ),
               ),
@@ -2921,7 +3216,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                 child: _buildPaymentMethodCard(
                   title: 'Airtel Money',
                   subtitle: 'Add during payment',
-                  imagePath: 'lib/assets/lines/aritel.png',
+                  imagePath: 'assets/lines/aritel.png',
                   buttonText: 'Add',
                 ),
               ),
@@ -2947,12 +3242,19 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     IconData? icon,
     required String buttonText,
   }) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerHighest
+            : const Color(0xFFF5F7FA),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: theme.brightness == Brightness.dark
+              ? theme.colorScheme.outline
+              : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         children: [
@@ -2973,18 +3275,18 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
               height: 50,
               width: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFF5B6B9E).withValues(alpha: 0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: 28, color: const Color(0xFF5B6B9E)),
+              child: Icon(icon, size: 28, color: theme.colorScheme.primary),
             ),
           const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: theme.colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
             maxLines: 2,
@@ -2993,7 +3295,10 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 11,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -3004,8 +3309,8 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
             child: ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5B6B9E),
-                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -3030,10 +3335,11 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     List<ParkingRecord> visiblePayments,
     int totalCount,
   ) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -3049,13 +3355,13 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Billing History',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: theme.colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -3068,15 +3374,15 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF5B6B9E).withValues(alpha: 0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '$totalCount',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF5B6B9E),
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),
@@ -3127,7 +3433,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                         : 'View All (${totalCount - _maxVisibleHistory} more)',
                   ),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF5B6B9E),
+                    foregroundColor: theme.colorScheme.primary,
                   ),
                 ),
               ),
@@ -3138,6 +3444,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
   }
 
   Widget _buildHistoryItem(ParkingRecord payment) {
+    final theme = Theme.of(context);
     final provider = payment.paymentMethod ?? 'Cash';
     final phone = payment.plateNumber; // Use plate number
     final location = 'Slot ${payment.parkingSlot}';
@@ -3160,9 +3467,15 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerHighest
+            : const Color(0xFFF5F7FA),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: theme.brightness == Brightness.dark
+              ? theme.colorScheme.outline
+              : Colors.grey.shade200,
+        ),
       ),
       child: Column(
         children: [
@@ -3176,10 +3489,10 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                   children: [
                     Text(
                       location,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: theme.colorScheme.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -3190,7 +3503,9 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                         Icon(
                           Icons.access_time,
                           size: 12,
-                          color: Colors.grey[600],
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -3198,7 +3513,9 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                             time,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -3214,10 +3531,10 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                 flex: 2,
                 child: Text(
                   cost,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF5B6B9E),
+                    color: theme.colorScheme.primary,
                   ),
                   textAlign: TextAlign.right,
                   maxLines: 1,
@@ -3257,14 +3574,18 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.phone_android, size: 14, color: Colors.grey[600]),
+              Icon(
+                Icons.phone_android,
+                size: 14,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   phone,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[700],
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,

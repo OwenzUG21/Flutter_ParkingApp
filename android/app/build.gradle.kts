@@ -12,15 +12,9 @@ plugins {
 
 android {
     namespace = "com.example.project8"
-   compileSdk = 36 
+    compileSdk = 36
 
-    defaultConfig {
-        targetSdk = 34 
-    }
-
-    
-   
-    ndkVersion = "29.0.13846066" 
+    ndkVersion = "29.0.13846066"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -28,10 +22,26 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-
     kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
+
+    // Build performance optimizations
+    buildFeatures {
+        buildConfig = true
+    }
+
+    packagingOptions {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+            )
         }
     }
     
@@ -40,17 +50,32 @@ android {
         applicationId = "com.example.project8"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        minSdk = flutter.minSdkVersion  // Required for OneSignal
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // OneSignal configuration
+        manifestPlaceholders["onesignal_app_id"] = "c50bd364-9db8-4cc6-a060-d71cd9c55c82"
+        manifestPlaceholders["onesignal_google_project_number"] = "501404852685"
     }
 
     buildTypes {
+        debug {
+            // Disable minification and shrinking for debug builds
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -61,4 +86,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    
+    // Google Play Services for push notifications
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-messaging")
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
+import '../services/weather_service.dart';
 
 class AppColors {
   static const Color background = Color(0xFF4A5AA8);
@@ -9,7 +10,6 @@ class AppColors {
   static const Color pinFull = Color(0xFFF44336);
   static const Color cardBackground = Color(0xFFFFFFFF);
 }
-
 
 class ParkingMapScreen extends StatefulWidget {
   const ParkingMapScreen({super.key});
@@ -24,6 +24,9 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
   late var mapController;
 
   final gmaps.LatLng initialPosition = gmaps.LatLng(0.3476, 32.5825); // Kampala
+
+  final WeatherService _weatherService = WeatherService();
+  WeatherData? _currentWeather;
 
   List<ParkingSpot> parkingSpots = [
     ParkingSpot(
@@ -55,6 +58,21 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
   String searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    _fetchWeather();
+  }
+
+  Future<void> _fetchWeather() async {
+    final weather = await _weatherService.getWeather('Kampala');
+    if (mounted) {
+      setState(() {
+        _currentWeather = weather;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Filter spots based on search
     List<ParkingSpot> filteredSpots = parkingSpots
@@ -83,19 +101,53 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
       );
     }).toSet();
 
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.colorScheme.primary,
         elevation: 0,
         title: Row(
-          children: const [
-            Icon(Icons.location_pin, color: AppColors.primaryText),
-            SizedBox(width: 5),
-            Text('Kampala', style: TextStyle(color: AppColors.primaryText)),
+          children: [
+            const Icon(Icons.location_pin, color: AppColors.primaryText),
+            const SizedBox(width: 5),
+            const Text(
+              'Kampala',
+              style: TextStyle(color: AppColors.primaryText),
+            ),
+            const Spacer(),
+            if (_currentWeather != null) ...[
+              Text(
+                _currentWeather!.weatherIcon,
+                style: const TextStyle(fontSize: 20),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${_currentWeather!.temperature.round()}°C',
+                style: const TextStyle(
+                  color: AppColors.primaryText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.primaryText,
+                  ),
+                ),
+              ),
           ],
         ),
-        actions: const [Icon(Icons.menu, color: AppColors.primaryText)],
+        actions: const [
+          SizedBox(width: 8),
+          Icon(Icons.menu, color: AppColors.primaryText),
+          SizedBox(width: 8),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import '../models/reservation_manager.dart';
+import '../services/print_service.dart';
 
 class PaymentHistoryScreen extends StatelessWidget {
-  const PaymentHistoryScreen({super.key});
+  PaymentHistoryScreen({super.key});
+
+  final _printService = PrintService();
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final payments = ReservationManager.instance.reservations;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5B6B9E),
+        backgroundColor: theme.colorScheme.primary,
         elevation: 0,
         title: const Text(
           'Payment History',
@@ -55,17 +59,22 @@ class PaymentHistoryScreen extends StatelessWidget {
                 final item = payments[index];
                 final provider = item['provider'] ?? 'Cash';
                 final phone = item['phone'] ?? 'N/A';
-                
+
                 Color providerColor = Colors.grey;
                 if (provider == 'MTN') {
                   providerColor = Colors.yellow.shade700;
-                } else if (provider == 'Airtel') providerColor = Colors.red.shade600;
-                else if (provider == 'Africell') providerColor = Colors.blue.shade700;
-                else if (provider == 'M-Cash') providerColor = Colors.green.shade700;
+                } else if (provider == 'Airtel') {
+                  providerColor = Colors.red.shade600;
+                } else if (provider == 'Africell') {
+                  providerColor = Colors.blue.shade700;
+                } else if (provider == 'M-Cash') {
+                  providerColor = Colors.green.shade700;
+                }
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 2,
+                  color: theme.colorScheme.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -81,10 +90,10 @@ class PaymentHistoryScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   item['location'] ?? 'Unknown Location',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    color: theme.colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -92,17 +101,18 @@ class PaymentHistoryScreen extends StatelessWidget {
                                   item['time'] ?? '',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey[600],
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],
                             ),
                             Text(
                               item['cost'] ?? '',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF5B6B9E),
+                                color: theme.colorScheme.primary,
                               ),
                             ),
                           ],
@@ -119,10 +129,10 @@ class PaymentHistoryScreen extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: providerColor.withOpacity(0.1),
+                                color: providerColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color: providerColor.withOpacity(0.5),
+                                  color: providerColor.withValues(alpha: 0.5),
                                   width: 1,
                                 ),
                               ),
@@ -139,14 +149,18 @@ class PaymentHistoryScreen extends StatelessWidget {
                             Icon(
                               Icons.phone_android,
                               size: 16,
-                              color: Colors.grey[600],
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               phone,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[800],
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.8,
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -166,6 +180,44 @@ class PaymentHistoryScreen extends StatelessWidget {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Print Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              try {
+                                await _printService.printPaymentReceipt(
+                                  location: item['location'] ?? 'Unknown',
+                                  time: item['time'] ?? '',
+                                  cost: item['cost'] ?? '',
+                                  provider: provider,
+                                  phone: phone,
+                                );
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.print, size: 18),
+                            label: const Text('Print Receipt'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: theme.colorScheme.primary,
+                              side: BorderSide(
+                                color: theme.colorScheme.primary,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),

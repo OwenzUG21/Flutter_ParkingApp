@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../models/reservation_manager.dart';
 import '../themes/colors.dart';
-import '../services/parking_service.dart';
 import '../services/notification_service.dart';
+import '../services/booking_service.dart';
 
 class MobileMoneyPaymentScreen extends StatefulWidget {
   final int totalAmount;
@@ -38,7 +38,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
   String selectedProvider = 'MTN';
   final TextEditingController phoneController = TextEditingController();
   int selectedNavIndex = 0;
-  final _parkingService = ParkingService();
+  final _bookingService = BookingService();
 
   @override
   void initState() {
@@ -58,8 +58,9 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -67,7 +68,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -79,19 +80,19 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back,
-                      color: Color(0xFF5B6B9E),
+                      color: theme.colorScheme.primary,
                     ),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'Mobile Money Payment',
                     style: TextStyle(
-                      color: Color(0xFF5B6B9E),
+                      color: theme.colorScheme.primary,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -112,7 +113,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -127,14 +128,14 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF5B6B9E,
-                              ).withValues(alpha: 0.1),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.local_parking_rounded,
-                              color: Color(0xFF5B6B9E),
+                              color: theme.colorScheme.primary,
                               size: 32,
                             ),
                           ),
@@ -145,10 +146,10 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                               children: [
                                 Text(
                                   widget.parkingName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF111827),
+                                    color: theme.colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -156,7 +157,8 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                                   widget.parkingLocation,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey.shade600,
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],
@@ -169,12 +171,12 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                     const SizedBox(height: 24),
 
                     // Amount to Pay Card
-                    const Text(
+                    Text(
                       'Amount to Pay',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF111827),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -225,12 +227,12 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                     const SizedBox(height: 24),
 
                     // Select Provider
-                    const Text(
+                    Text(
                       'Select Provider',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF111827),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -281,18 +283,18 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                     const SizedBox(height: 24),
 
                     // Phone Number
-                    const Text(
+                    Text(
                       'Phone Number',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF111827),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
@@ -305,26 +307,29 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                       child: TextField(
                         controller: phoneController,
                         keyboardType: TextInputType.phone,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
                         ),
                         decoration: InputDecoration(
                           hintText: '0700 000 000',
                           hintStyle: TextStyle(
-                            color: Colors.grey.shade400,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.4,
+                            ),
                             fontWeight: FontWeight.normal,
                           ),
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.phone,
-                            color: Color(0xFF5B6B9E),
+                            color: theme.colorScheme.primary,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: theme.colorScheme.surface,
                           contentPadding: const EdgeInsets.all(16),
                         ),
                       ),
@@ -430,17 +435,22 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                             await Future.delayed(const Duration(seconds: 4));
 
                             // Process payment in database
-                            if (widget.parkingRecordId != null &&
-                                widget.vehiclePlate != null) {
-                              // Complete the parking session and create transaction
-                              await _parkingService.vehicleExit(
-                                plateNumber: widget.vehiclePlate!,
-                                paymentMethod: 'mobile_money',
-                                phoneNumber: phoneController.text,
-                                attendantId: 'SYSTEM',
+                            // Update payment status in database
+                            if (widget.parkingRecordId != null) {
+                              print(
+                                '💾 Marking booking as paid: ${widget.parkingRecordId}',
                               );
 
-                              // Update reservation status
+                              // Mark booking as paid (does NOT set exitTime)
+                              await _bookingService.markBookingAsPaid(
+                                widget.parkingRecordId!,
+                                'mobile_money',
+                                phoneController.text,
+                              );
+
+                              print('✅ Booking marked as paid in database');
+
+                              // Update in-memory reservation manager (for backward compatibility)
                               if (widget.reservationId != null) {
                                 print(
                                   '🔄 Updating payment status for: ${widget.reservationId}',
@@ -451,9 +461,9 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                                       'Paid',
                                     );
                                 print('✅ Payment status update called');
-                              } else {
-                                print('❌ No reservationId provided!');
                               }
+                            } else {
+                              print('❌ No parkingRecordId provided!');
                             }
 
                             // Close the dialog

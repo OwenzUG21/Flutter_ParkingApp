@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../services/notification_service.dart';
 
 /// Test screen to manually trigger and test all notification types
@@ -13,6 +14,52 @@ class NotificationTestScreen extends StatefulWidget {
 class _NotificationTestScreenState extends State<NotificationTestScreen> {
   final _notificationService = NotificationService();
   String _statusMessage = 'Ready to test notifications';
+  String _oneSignalStatus = 'Checking OneSignal...';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOneSignalStatus();
+  }
+
+  void _checkOneSignalStatus() {
+    // Add observer to track OneSignal registration
+    OneSignal.User.pushSubscription.addObserver((state) {
+      final id = state.current.id;
+      final token = state.current.token;
+      final optedIn = state.current.optedIn;
+
+      if (mounted) {
+        setState(() {
+          if (id != null) {
+            _oneSignalStatus =
+                '✅ Registered\nID: $id\nToken: ${token?.substring(0, 20)}...\nOpted In: $optedIn';
+          } else {
+            _oneSignalStatus = '❌ Not registered yet';
+          }
+        });
+      }
+
+      print('OneSignal Subscription State Changed:');
+      print('  ID: $id');
+      print('  Token: $token');
+      print('  Opted In: $optedIn');
+    });
+
+    // Also check current status immediately
+    final currentId = OneSignal.User.pushSubscription.id;
+    final currentToken = OneSignal.User.pushSubscription.token;
+    final currentOptedIn = OneSignal.User.pushSubscription.optedIn;
+
+    setState(() {
+      if (currentId != null) {
+        _oneSignalStatus =
+            '✅ Registered\nID: $currentId\nToken: ${currentToken?.substring(0, 20)}...\nOpted In: $currentOptedIn';
+      } else {
+        _oneSignalStatus = '❌ Not registered yet';
+      }
+    });
+  }
 
   void _showStatus(String message) {
     setState(() {
@@ -25,11 +72,12 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notification Test'),
-        backgroundColor: const Color(0xFF5B6B9E),
-        foregroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -37,6 +85,44 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // OneSignal Status Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.cloud_done, color: Colors.green.shade700),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'OneSignal Status',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _oneSignalStatus,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
               // Status Card
               Container(
                 padding: const EdgeInsets.all(16),
@@ -57,6 +143,54 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
                     ),
                   ],
                 ),
+              ),
+
+              const SizedBox(height: 24),
+
+              const Text(
+                'OneSignal Setup',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Request Permission Button
+              _buildTestButton(
+                icon: Icons.notifications_active,
+                label: 'Request OneSignal Permission',
+                color: Colors.deepPurple,
+                onPressed: () async {
+                  _showStatus('Requesting permission...');
+                  try {
+                    final granted =
+                        await OneSignal.Notifications.requestPermission(true);
+                    _showStatus(
+                      granted ? '✅ Permission granted!' : '❌ Permission denied',
+                    );
+
+                    // Refresh status after permission request
+                    await Future.delayed(const Duration(seconds: 1));
+                    _checkOneSignalStatus();
+                  } catch (e) {
+                    _showStatus('Error: $e');
+                  }
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Check Current Status Button
+              _buildTestButton(
+                icon: Icons.refresh,
+                label: 'Refresh OneSignal Status',
+                color: Colors.cyan,
+                onPressed: () {
+                  _checkOneSignalStatus();
+                  _showStatus('Status refreshed!');
+                },
               ),
 
               const SizedBox(height: 24),

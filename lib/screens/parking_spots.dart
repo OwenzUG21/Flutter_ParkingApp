@@ -88,10 +88,11 @@ class _ParkingSpotsScreenState extends State<ParkingSpotsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5B6B9E),
+        backgroundColor: theme.colorScheme.primary,
         elevation: 0,
         title: const Text(
           'Available Parking Spots',
@@ -339,7 +340,7 @@ class _ParkingSpotsScreenState extends State<ParkingSpotsScreen> {
                             spot['color'],
                           ),
                         );
-                      }).toList(),
+                      }),
                   ],
                 ),
               ),

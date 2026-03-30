@@ -131,6 +131,8 @@ import 'package:project8/screens/mobile_money_payment.dart';
 import 'package:project8/screens/chat_screen.dart';
 import 'package:project8/screens/auth_wrapper.dart';
 import 'package:project8/screens/edit_profile_screen.dart';
+import 'package:project8/screens/notifications_screen.dart';
+import 'package:project8/screens/onesignal_test_screen.dart';
 import 'package:project8/services/theme_service.dart';
 import 'package:project8/themes/app_theme.dart';
 import 'screens/login.dart';
@@ -139,6 +141,11 @@ import 'screens/splash_screen.dart';
 import 'firebase_options.dart';
 import 'services/database_manager.dart';
 import 'services/notification_service.dart';
+import 'services/onesignal_service.dart';
+import 'services/onesignal_diagnostic.dart';
+
+// Global navigator key for navigation from anywhere
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -151,6 +158,13 @@ void main() async {
 
   // Initialize notification service
   await NotificationService().initialize();
+
+  // Initialize OneSignal
+  await OneSignalService().initialize();
+
+  // Run diagnostics (remove in production)
+  await Future.delayed(const Duration(seconds: 3));
+  await OneSignalDiagnostic.runDiagnostics();
 
   // Initialize theme service
   await ThemeService().initialize();
@@ -173,6 +187,7 @@ class ParkFlexApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeService().themeMode,
           initialRoute: '/splash',
+          navigatorKey: _navigatorKey,
           routes: {
             '/splash': (context) => const SplashScreen(),
             '/login': (context) => const LoginScreen(),
@@ -180,6 +195,8 @@ class ParkFlexApp extends StatelessWidget {
             '/signup': (context) => const SignupScreen(),
             '/parking-spots': (context) => const ParkingSpotsScreen(),
             '/edit-profile': (context) => const EditProfileScreen(),
+            '/notifications': (context) => const NotificationsScreen(),
+            '/onesignal-test': (context) => const OneSignalTestScreen(),
           },
           onGenerateRoute: (settings) {
             if (settings.name == '/dashboard') {

@@ -3,6 +3,7 @@ import '../themes/colors.dart';
 import '../widgets/inputs.dart';
 import '../services/auth_service.dart';
 import '../services/preferences_service.dart';
+import '../services/onesignal_service.dart';
 import 'signup.dart' as signup;
 
 class LoginScreen extends StatefulWidget {
@@ -61,27 +62,33 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      // Save user data to SharedPreferences
-      if (_prefsService != null && userCredential != null) {
-        await _prefsService!.saveUsername(
-          userCredential.user?.displayName ?? 'User',
-        );
-        await _prefsService!.saveUserEmail(_emailController.text.trim());
-        await _prefsService!.saveLoginStatus(true);
-        await _prefsService!.saveLastScreen('/dashboard');
-      }
+      if (userCredential != null && userCredential.user != null) {
+        // Save user data to SharedPreferences
+        if (_prefsService != null) {
+          await _prefsService!.saveUsername(
+            userCredential.user?.displayName ?? 'User',
+          );
+          await _prefsService!.saveUserEmail(_emailController.text.trim());
+          await _prefsService!.saveLoginStatus(true);
+          await _prefsService!.saveLastScreen('/dashboard');
+        }
 
-      // After successful login, navigate to auth wrapper
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+        // Set OneSignal external user ID
+        await OneSignalService().setExternalUserId(userCredential.user!.uid);
+
+        // After successful login, navigate to dashboard directly
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/dashboard',
+            (route) => false,
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        _showError(e.toString());
-      }
-    } finally {
-      if (mounted) {
         setState(() => _isLoading = false);
+        _showError(e.toString());
       }
     }
   }
@@ -126,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.background, // Blue background
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -151,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF121212),
+                        color: AppColors.background,
                       ),
                     ),
                   ),
@@ -161,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Text(
                   "ParkFlexApp",
                   style: TextStyle(
-                    color: AppColors.primaryText,
+                    color: AppColors.white,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
@@ -234,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.redButton,
-                      foregroundColor: AppColors.primaryText,
+                      foregroundColor: AppColors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -268,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Expanded(
                       child: Divider(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         thickness: 1,
                       ),
                     ),
@@ -277,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(
                         "OR",
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
+                          color: Colors.white.withOpacity(0.5),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -285,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     Expanded(
                       child: Divider(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         thickness: 1,
                       ),
                     ),
@@ -377,12 +384,9 @@ class _LoginScreenState extends State<LoginScreen> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.2),
-            width: 1,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
         ),
         child: Center(child: child),
       ),
@@ -413,18 +417,18 @@ class _PasswordFieldState extends State<_PasswordField> {
         hintText: widget.hint,
         hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
+        fillColor: Colors.white.withOpacity(0.1),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFFF4D4D), width: 2),
+          borderSide: const BorderSide(color: AppColors.redButton, width: 2),
         ),
         suffixIcon: IconButton(
           icon: Icon(

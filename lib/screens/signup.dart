@@ -128,7 +128,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.background, // Blue background
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -153,7 +153,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF121212),
+                        color: AppColors.background,
                       ),
                     ),
                   ),

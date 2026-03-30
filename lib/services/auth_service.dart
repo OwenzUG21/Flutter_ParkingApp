@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'onesignal_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -48,6 +49,8 @@ class AuthService {
 
   // Sign out
   Future<void> signOut() async {
+    // Remove OneSignal external user ID on logout
+    await OneSignalService().removeExternalUserId();
     await _auth.signOut();
   }
 

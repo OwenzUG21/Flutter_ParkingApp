@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/reservation_manager.dart';
+import '../services/print_service.dart';
 
 class MyReservationsScreen extends StatefulWidget {
   const MyReservationsScreen({super.key});
@@ -9,6 +10,7 @@ class MyReservationsScreen extends StatefulWidget {
 }
 
 class _MyReservationsScreenState extends State<MyReservationsScreen> {
+  final _printService = PrintService();
   @override
   void initState() {
     super.initState();
@@ -18,12 +20,13 @@ class _MyReservationsScreenState extends State<MyReservationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final reservations = ReservationManager.instance.reservations;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5B6B9E),
+        backgroundColor: theme.colorScheme.primary,
         elevation: 0,
         title: const Text(
           'My Reservations',
@@ -39,11 +42,7 @@ class _MyReservationsScreenState extends State<MyReservationsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.history,
-                    size: 80,
-                    color: Colors.grey[300],
-                  ),
+                  Icon(Icons.history, size: 80, color: Colors.grey[300]),
                   const SizedBox(height: 16),
                   Text(
                     'No reservations yet',
@@ -116,15 +115,19 @@ class _MyReservationsScreenState extends State<MyReservationsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: (item['status'] == 'Active' || item['status'] == 'Upcoming') 
-                                    ? Colors.green.withOpacity(0.1) 
+                                color:
+                                    (item['status'] == 'Active' ||
+                                        item['status'] == 'Upcoming')
+                                    ? Colors.green.withOpacity(0.1)
                                     : Colors.grey.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 item['status'] ?? 'Completed',
                                 style: TextStyle(
-                                  color: (item['status'] == 'Active' || item['status'] == 'Upcoming')
+                                  color:
+                                      (item['status'] == 'Active' ||
+                                          item['status'] == 'Upcoming')
                                       ? Colors.green
                                       : Colors.grey[600],
                                   fontWeight: FontWeight.bold,
@@ -168,6 +171,42 @@ class _MyReservationsScreenState extends State<MyReservationsScreen> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Print Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              try {
+                                await _printService.printBookingReceipt(
+                                  location: item['location'] ?? 'Unknown',
+                                  spot: item['spot'] ?? 'General Parking',
+                                  time: item['time'] ?? '',
+                                  cost: item['cost'] ?? '',
+                                  status: item['status'] ?? 'Completed',
+                                );
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.print, size: 18),
+                            label: const Text('Print Receipt'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF5B6B9E),
+                              side: const BorderSide(color: Color(0xFF5B6B9E)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../themes/colors.dart';
 
 class CustomInput extends StatefulWidget {
   final String label;
@@ -46,20 +47,21 @@ class _CustomInputState extends State<CustomInput> {
             hintText: widget.hint,
             hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.05),
+            fillColor: Colors.white.withOpacity(0.1),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFFF4D4D), width: 2),
+              borderSide: const BorderSide(
+                color: AppColors.redButton,
+                width: 2,
+              ),
             ),
             suffixIcon: widget.isPassword
                 ? IconButton(

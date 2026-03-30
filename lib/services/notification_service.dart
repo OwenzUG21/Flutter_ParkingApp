@@ -1,6 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
+import 'notification_storage_service.dart';
+import '../models/notification_model.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -9,6 +11,8 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+  final NotificationStorageService _storageService =
+      NotificationStorageService();
 
   bool _isInitialized = false;
 
@@ -66,8 +70,17 @@ class NotificationService {
 
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
-    // Handle notification tap - you can navigate to specific screens here
-    // TODO: Add navigation logic here
+    // Store the payload for navigation
+    _lastNotificationPayload = response.payload;
+  }
+
+  String? _lastNotificationPayload;
+
+  /// Get and clear the last notification payload
+  String? getAndClearLastPayload() {
+    final payload = _lastNotificationPayload;
+    _lastNotificationPayload = null;
+    return payload;
   }
 
   /// Show Payment Completed notification
@@ -101,13 +114,28 @@ class NotificationService {
       iOS: iosDetails,
     );
 
+    final title = 'Payment Successful';
+    final body =
+        'Your parking payment of UGX ${amount.toStringAsFixed(0)} has been confirmed${parkingName != null ? ' for $parkingName' : ''}.';
+
     await _notifications.show(
       id: 1, // Notification ID
-      title: 'Payment Successful',
-      body:
-          'Your parking payment of UGX ${amount.toStringAsFixed(0)} has been confirmed${parkingName != null ? ' for $parkingName' : ''}.',
+      title: title,
+      body: body,
       notificationDetails: details,
       payload: 'payment_completed',
+    );
+
+    // Save to storage
+    await _storageService.saveNotification(
+      NotificationModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        body: body,
+        type: 'payment',
+        timestamp: DateTime.now(),
+        payload: 'payment_completed',
+      ),
     );
   }
 
@@ -142,13 +170,28 @@ class NotificationService {
       iOS: iosDetails,
     );
 
+    final title = 'Parking Started';
+    final body =
+        'Your parking session is now active at $parkingName${slotNumber != null ? ' (Slot $slotNumber)' : ''}.';
+
     await _notifications.show(
       id: 2, // Notification ID
-      title: 'Parking Started',
-      body:
-          'Your parking session is now active at $parkingName${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
+      title: title,
+      body: body,
       notificationDetails: details,
       payload: 'parking_started',
+    );
+
+    // Save to storage
+    await _storageService.saveNotification(
+      NotificationModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        body: body,
+        type: 'parking',
+        timestamp: DateTime.now(),
+        payload: 'parking_started',
+      ),
     );
   }
 
@@ -186,14 +229,28 @@ class NotificationService {
 
     final String dateStr =
         '${bookingDate.day}/${bookingDate.month}/${bookingDate.year}';
+    final title = 'Booking Confirmed';
+    final body =
+        'Your parking slot has been successfully booked at $parkingName for $dateStr${slotNumber != null ? ' (Slot $slotNumber)' : ''}.';
 
     await _notifications.show(
       id: 3, // Notification ID
-      title: 'Booking Confirmed',
-      body:
-          'Your parking slot has been successfully booked at $parkingName for $dateStr${slotNumber != null ? ' (Slot $slotNumber)' : ''}.',
+      title: title,
+      body: body,
       notificationDetails: details,
       payload: 'booking_completed',
+    );
+
+    // Save to storage
+    await _storageService.saveNotification(
+      NotificationModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        body: body,
+        type: 'booking',
+        timestamp: DateTime.now(),
+        payload: 'booking_completed',
+      ),
     );
   }
 
@@ -280,12 +337,28 @@ class NotificationService {
       iOS: iosDetails,
     );
 
+    final title = 'Parking Expiring Soon';
+    final body =
+        'Your parking at $parkingName expires in $minutesLeft minutes.';
+
     await _notifications.show(
       id: 5, // Notification ID
-      title: 'Parking Expiring Soon',
-      body: 'Your parking at $parkingName expires in $minutesLeft minutes.',
+      title: title,
+      body: body,
       notificationDetails: details,
       payload: 'parking_expiring',
+    );
+
+    // Save to storage
+    await _storageService.saveNotification(
+      NotificationModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        body: body,
+        type: 'expiry',
+        timestamp: DateTime.now(),
+        payload: 'parking_expiring',
+      ),
     );
   }
 

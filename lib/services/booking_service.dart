@@ -26,7 +26,7 @@ class BookingService {
     String vehicleType = 'car',
     String? notes,
   }) async {
-    // Create parking record with future start time
+    // Create parking record with future start time and duration
     final recordId = await _driftService.addParkingRecord(
       ParkingRecordsCompanion.insert(
         plateNumber: plateNumber.toUpperCase(),
@@ -36,6 +36,7 @@ class BookingService {
         attendantId: const Value('SYSTEM'),
         paymentStatus: const Value('pending'),
         amountCharged: Value(parkingRate),
+        duration: Value(durationHours * 60), // Store duration in minutes
         notes: Value(notes),
       ),
     );
@@ -101,7 +102,7 @@ class BookingService {
     }).toList();
   }
 
-  /// Get completed bookings
+  /// Get completed bookings (includes completed, cancelled, and unpaid)
   Future<List<ParkingRecord>> getCompletedBookings() async {
     final allRecords = await _driftService.getAllParkingRecords();
     return allRecords.where((record) => record.exitTime != null).toList();
@@ -124,11 +125,12 @@ class BookingService {
       throw Exception('Booking not found');
     }
 
-    // Update booking status
+    // Update booking status to cancelled and set exit time
     await _driftService.updateParkingRecord(
       ParkingRecordsCompanion(
         id: Value(bookingId),
         paymentStatus: const Value('cancelled'),
+        exitTime: Value(DateTime.now()),
         notes: Value('${booking.notes ?? ''}\nCancelled at ${DateTime.now()}'),
       ),
     );
@@ -140,6 +142,9 @@ class BookingService {
         ParkingSlotsCompanion(
           id: Value(slot.id),
           isReserved: const Value(false),
+          isOccupied: const Value(false),
+          currentPlateNumber: const Value(null),
+          occupiedSince: const Value(null),
           reservedBy: const Value(null),
           reservedUntil: const Value(null),
         ),
@@ -300,5 +305,145 @@ class BookingService {
         await cancelBooking(booking.id);
       }
     }
+  }
+
+  /// Update booking statuses based on time and payment
+  /// This should be called periodically to manage session lifecycle
+  Future<void> updateBookingStatuses() async {
+    final now = DateTime.now();
+    final allBookings = await getAllBookings();
+
+    print('🔄 Updating booking statuses at $now');
+    print('   Total bookings to check: ${allBookings.length}');
+
+    for (final booking in allBookings) {
+      // Skip already completed bookings
+      if (booking.exitTime != null) {
+        print('   ⏭️  Skipping booking ${booking.id} - already has exitTime');
+        continue;
+      }
+
+      final entryTime = booking.entryTime;
+      final duration = booking.duration ?? 120; // Default 2 hours in minutes
+      final sessionEndTime = entryTime.add(Duration(minutes: duration));
+      final paymentStatus = booking.paymentStatus ?? 'pending';
+
+      print('   📋 Booking ${booking.id}:');
+      print('      Entry: $entryTime');
+      print('      Duration: $duration minutes');
+      print('      End Time: $sessionEndTime');
+      print('      Payment: $paymentStatus');
+      print(
+        '      Time until end: ${sessionEndTime.difference(now).inMinutes} minutes',
+      );
+
+      // Case 1: Upcoming -> Active (when session time arrives)
+      if (entryTime.isBefore(now) &&
+          entryTime.isAfter(now.subtract(const Duration(minutes: 5)))) {
+        // Session just started, activate it if paid
+        if (paymentStatus == 'paid') {
+          print('      ✅ Activating booking ${booking.id}');
+          await activateBooking(booking.id);
+        }
+      }
+
+      // Case 2: Active (PAID) -> History with "completed" status (ONLY when time is done)
+      if (sessionEndTime.isBefore(now) &&
+          (paymentStatus == 'paid' || paymentStatus == 'completed')) {
+        print('      ✅ Completing booking ${booking.id} - time ended and paid');
+        // Mark as completed - session time has ended
+        await _driftService.updateParkingRecord(
+          ParkingRecordsCompanion(
+            id: Value(booking.id),
+            exitTime: Value(sessionEndTime),
+            duration: Value(duration),
+            paymentStatus: const Value('completed'),
+          ),
+        );
+
+        // Release the slot
+        final slot = await _driftService.getSlotByNumber(booking.parkingSlot);
+        if (slot != null) {
+          await _driftService.updateSlot(
+            ParkingSlotsCompanion(
+              id: Value(slot.id),
+              isOccupied: const Value(false),
+              isReserved: const Value(false),
+              currentPlateNumber: const Value(null),
+              occupiedSince: const Value(null),
+              reservedBy: const Value(null),
+              reservedUntil: const Value(null),
+            ),
+          );
+        }
+
+        // Log completion
+        await _driftService.addVehicleLog(
+          VehicleLogsCompanion.insert(
+            plateNumber: booking.plateNumber,
+            timestamp: now,
+            activityType: 'exit',
+            parkingSlot: Value(booking.parkingSlot),
+            status: const Value('success'),
+            description: Value(
+              'Session completed for slot ${booking.parkingSlot}',
+            ),
+          ),
+        );
+      } else if (sessionEndTime.isAfter(now) &&
+          (paymentStatus == 'paid' || paymentStatus == 'completed')) {
+        print(
+          '      ⏳ Booking ${booking.id} is PAID but time not ended yet - staying in Active',
+        );
+      }
+
+      // Case 3: Active (UNPAID) -> History with "unpaid" status (30 minutes after session end)
+      if (sessionEndTime.add(const Duration(minutes: 30)).isBefore(now) &&
+          paymentStatus == 'pending') {
+        print(
+          '      ⚠️  Marking booking ${booking.id} as unpaid - 30 min grace period expired',
+        );
+        // Mark as unpaid and end session
+        await _driftService.updateParkingRecord(
+          ParkingRecordsCompanion(
+            id: Value(booking.id),
+            exitTime: Value(sessionEndTime.add(const Duration(minutes: 30))),
+            duration: Value(duration + 30),
+            paymentStatus: const Value('unpaid'),
+          ),
+        );
+
+        // Release the slot
+        final slot = await _driftService.getSlotByNumber(booking.parkingSlot);
+        if (slot != null) {
+          await _driftService.updateSlot(
+            ParkingSlotsCompanion(
+              id: Value(slot.id),
+              isOccupied: const Value(false),
+              isReserved: const Value(false),
+              currentPlateNumber: const Value(null),
+              occupiedSince: const Value(null),
+              reservedBy: const Value(null),
+              reservedUntil: const Value(null),
+            ),
+          );
+        }
+
+        // Log unpaid session
+        await _driftService.addVehicleLog(
+          VehicleLogsCompanion.insert(
+            plateNumber: booking.plateNumber,
+            timestamp: now,
+            activityType: 'exit',
+            parkingSlot: Value(booking.parkingSlot),
+            status: const Value('unpaid'),
+            description: Value(
+              'Session ended unpaid for slot ${booking.parkingSlot}',
+            ),
+          ),
+        );
+      }
+    }
+    print('✅ Booking status update complete\n');
   }
 }
