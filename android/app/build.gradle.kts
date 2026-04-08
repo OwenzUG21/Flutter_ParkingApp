@@ -33,6 +33,16 @@ android {
         buildConfig = true
     }
 
+    // Disable unnecessary features for faster builds
+    buildFeatures {
+        aidl = false
+        renderScript = false
+        resValues = false
+        shaders = false
+    }
+
+    
+
     packagingOptions {
         resources {
             excludes += setOf(
@@ -62,16 +72,19 @@ android {
 
     buildTypes {
         debug {
-            // Disable minification and shrinking for debug builds
+            // Disable all optimizations for debug builds
             isMinifyEnabled = false
             isShrinkResources = false
+            isDebuggable = true
+            // Skip R8 optimization completely
+            proguardFiles.clear()
         }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false  // Disable for faster builds
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import '../services/weather_service.dart';
+import 'weather_screen.dart';
 
 class AppColors {
   static const Color background = Color(0xFF4A5AA8);
@@ -116,31 +117,47 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
               style: TextStyle(color: AppColors.primaryText),
             ),
             const Spacer(),
-            if (_currentWeather != null) ...[
-              Text(
-                _currentWeather!.weatherIcon,
-                style: const TextStyle(fontSize: 20),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${_currentWeather!.temperature.round()}°C',
-                style: const TextStyle(
-                  color: AppColors.primaryText,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ] else
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryText,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const WeatherScreen(currentCity: 'Kampala'),
                   ),
-                ),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_currentWeather != null) ...[
+                    Text(
+                      _currentWeather!.weatherIcon,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_currentWeather!.temperature.round()}°C',
+                      style: const TextStyle(
+                        color: AppColors.primaryText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ] else
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primaryText,
+                        ),
+                      ),
+                    ),
+                ],
               ),
+            ),
           ],
         ),
         actions: const [

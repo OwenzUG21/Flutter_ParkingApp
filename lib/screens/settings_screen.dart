@@ -67,7 +67,9 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.person_outline,
                     title: 'Profile Settings',
                     subtitle: 'Update your personal information',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/profile');
+                    },
                   ),
                   _buildSettingItem(
                     icon: Icons.notifications_outlined,

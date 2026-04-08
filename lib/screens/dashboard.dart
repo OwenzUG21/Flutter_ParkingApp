@@ -14,6 +14,7 @@ import '../widgets/notification_badge.dart';
 import 'profile_screen.dart';
 import 'community_screen.dart';
 import 'settings_screen.dart';
+import 'weather_screen.dart';
 
 void main() {
   runApp(const DashboardApp());
@@ -48,6 +49,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final ScrollController _scrollController = ScrollController();
+  bool _showSearchBar = true;
+  double _lastScrollOffset = 0;
 
   final List<ParkingLot> _parkingLots = [
     ParkingLot(
@@ -145,6 +149,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     });
 
+    // Add scroll listener to hide/show search bar
+    _scrollController.addListener(_onScroll);
+
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
       setState(() {
         for (final lot in _parkingLots) {
@@ -161,6 +168,34 @@ class _DashboardScreenState extends State<DashboardScreen>
     _fetchWeather();
   }
 
+  void _onScroll() {
+    final currentOffset = _scrollController.offset;
+    final delta = currentOffset - _lastScrollOffset;
+
+    // Only trigger if scrolled more than 10 pixels
+    if (delta.abs() > 10) {
+      if (delta > 0 && _showSearchBar) {
+        // Scrolling down - hide search bar
+        setState(() {
+          _showSearchBar = false;
+        });
+      } else if (delta < 0 && !_showSearchBar) {
+        // Scrolling up - show search bar
+        setState(() {
+          _showSearchBar = true;
+        });
+      }
+      _lastScrollOffset = currentOffset;
+    }
+
+    // Always show search bar when at the top
+    if (currentOffset <= 0 && !_showSearchBar) {
+      setState(() {
+        _showSearchBar = true;
+      });
+    }
+  }
+
   Future<void> _fetchWeather() async {
     final weather = await _weatherService.getWeather('Kampala');
     if (mounted) {
@@ -174,6 +209,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -546,188 +582,201 @@ class _DashboardScreenState extends State<DashboardScreen>
       children: [
         Column(
           children: [
-            // Search Bar and Current Location (only in Parking tab)
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: theme.scaffoldBackgroundColor,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Current Location with Weather on Right
-                  Row(
+            // Search Bar and Current Location (only in Parking tab) - Animated
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              height: _showSearchBar ? null : 0,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: _showSearchBar ? 1.0 : 0.0,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  color: theme.scaffoldBackgroundColor,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Left side - Location info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                      // Current Location with Weather on Right
+                      Row(
+                        children: [
+                          // Left side - Location info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.location_on,
-                                  color: theme.brightness == Brightness.dark
-                                      ? Colors.grey.shade400
-                                      : Colors.grey.shade600,
-                                  size: 18,
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on,
+                                      color: theme.brightness == Brightness.dark
+                                          ? Colors.grey.shade400
+                                          : Colors.grey.shade600,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Current Location',
+                                      style: TextStyle(
+                                        color:
+                                            theme.brightness == Brightness.dark
+                                            ? Colors.grey.shade400
+                                            : Colors.grey.shade600,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'Current Location',
+                                  'Kampala, Uganda',
                                   style: TextStyle(
-                                    color: theme.brightness == Brightness.dark
-                                        ? Colors.grey.shade400
-                                        : Colors.grey.shade600,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                                    color: theme.colorScheme.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Kampala, Uganda',
-                              style: TextStyle(
-                                color: theme.colorScheme.onSurface,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                          ),
+                          // Right side - Weather info
+                          if (_currentWeather != null)
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        WeatherScreen(currentCity: 'Kampala'),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _currentWeather!.weatherIcon,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${_currentWeather!.temperature.round()}°C',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onSurface,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surface,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Search Bar
+                      Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                      ),
-                      // Right side - Weather info
-                      if (_currentWeather != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _currentWeather!.weatherIcon,
-                                style: const TextStyle(fontSize: 24),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${_currentWeather!.temperature.round()}°C',
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurface,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                theme.colorScheme.primary,
-                              ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
+                          style: TextStyle(color: theme.colorScheme.onSurface),
+                          decoration: InputDecoration(
+                            hintText: 'Search parking locations...',
+                            border: InputBorder.none,
+                            hintStyle: TextStyle(
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.grey.shade500
+                                  : Colors.grey,
                             ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Search Bar
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.search,
-                          color: theme.brightness == Brightness.dark
-                              ? Colors.grey.shade400
-                              : Colors.grey,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                              });
-                            },
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
                             ),
-                            decoration: InputDecoration(
-                              hintText: 'Search parking locations...',
-                              border: InputBorder.none,
-                              hintStyle: TextStyle(
-                                color: theme.brightness == Brightness.dark
-                                    ? Colors.grey.shade500
-                                    : Colors.grey,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (_searchQuery.isNotEmpty)
-                          IconButton(
-                            icon: Icon(
-                              Icons.clear,
+                            prefixIcon: Icon(
+                              Icons.search,
                               color: theme.brightness == Brightness.dark
                                   ? Colors.grey.shade400
                                   : Colors.grey,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        else
-                          Icon(
-                            Icons.tune,
-                            color: theme.brightness == Brightness.dark
-                                ? Colors.grey.shade400
-                                : Colors.grey,
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(
+                                      Icons.clear,
+                                      color: theme.brightness == Brightness.dark
+                                          ? Colors.grey.shade400
+                                          : Colors.grey,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : Icon(
+                                    Icons.tune,
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey,
+                                  ),
                           ),
-                      ],
-                    ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
 
@@ -766,6 +815,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       )
                     : GridView.builder(
+                        controller: _scrollController,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,

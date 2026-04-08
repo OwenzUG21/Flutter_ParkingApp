@@ -131,6 +131,7 @@ import 'package:project8/screens/mobile_money_payment.dart';
 import 'package:project8/screens/chat_screen.dart';
 import 'package:project8/screens/auth_wrapper.dart';
 import 'package:project8/screens/edit_profile_screen.dart';
+import 'package:project8/screens/profile_screen.dart';
 import 'package:project8/screens/notifications_screen.dart';
 import 'package:project8/screens/onesignal_test_screen.dart';
 import 'package:project8/services/theme_service.dart';
@@ -194,6 +195,7 @@ class ParkFlexApp extends StatelessWidget {
             '/auth': (context) => const AuthWrapper(),
             '/signup': (context) => const SignupScreen(),
             '/parking-spots': (context) => const ParkingSpotsScreen(),
+            '/profile': (context) => const ProfileScreen(),
             '/edit-profile': (context) => const EditProfileScreen(),
             '/notifications': (context) => const NotificationsScreen(),
             '/onesignal-test': (context) => const OneSignalTestScreen(),
