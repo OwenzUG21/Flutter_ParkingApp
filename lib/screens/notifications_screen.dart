@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/notification_storage_service.dart';
+import '../services/notification_badge_notifier.dart';
 import '../models/notification_model.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationStorageService _notificationService =
       NotificationStorageService();
+  final NotificationBadgeNotifier _badgeNotifier = NotificationBadgeNotifier();
   List<NotificationModel> _notifications = [];
   bool _isLoading = true;
 
@@ -30,8 +32,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _notifications = notifications;
         _isLoading = false;
       });
-      // Mark all as read
-      await _notificationService.markAllAsRead();
     } catch (e) {
       setState(() => _isLoading = false);
       debugPrint('Error loading notifications: $e');
@@ -41,11 +41,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _deleteNotification(String id) async {
     await _notificationService.deleteNotification(id);
     _loadNotifications();
+    // Notify badge to refresh after deletion
+    _badgeNotifier.notifyBadgeUpdate();
   }
 
   Future<void> _clearAll() async {
     await _notificationService.clearAllNotifications();
     _loadNotifications();
+    // Notify badge to refresh after clearing all
+    _badgeNotifier.notifyBadgeUpdate();
+  }
+
+  Future<void> _markAllAsRead() async {
+    await _notificationService.markAllAsRead();
+    _loadNotifications();
+    // Notify badge to refresh after marking all as read
+    _badgeNotifier.notifyBadgeUpdate();
   }
 
   @override
@@ -71,52 +82,102 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         actions: [
           if (_notifications.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Clear All'),
-                    content: const Text(
-                      'Are you sure you want to clear all notifications?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: theme.colorScheme.onSurface),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (value) {
+                if (value == 'mark_read') {
+                  _markAllAsRead();
+                } else if (value == 'clear_all') {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _clearAll();
-                        },
-                        child: const Text('Clear'),
+                      title: const Text('Clear All'),
+                      content: const Text(
+                        'Are you sure you want to clear all notifications?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _clearAll();
+                          },
+                          child: const Text('Clear'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'mark_read',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.done_all,
+                        size: 20,
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Mark all as read',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                        ),
                       ),
                     ],
                   ),
-                );
-              },
-              child: Text(
-                'Clear All',
-                style: TextStyle(color: theme.colorScheme.primary),
-              ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'clear_all',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_sweep,
+                        size: 20,
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Clear all',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _notifications.isEmpty
-          ? _buildEmptyState(theme)
-          : RefreshIndicator(
-              onRefresh: _loadNotifications,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _notifications.length,
-                itemBuilder: (context, index) {
-                  return _buildNotificationCard(_notifications[index], theme);
-                },
-              ),
-            ),
+              ? _buildEmptyState(theme)
+              : RefreshIndicator(
+                  onRefresh: _loadNotifications,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _notifications.length,
+                    itemBuilder: (context, index) {
+                      return _buildNotificationCard(
+                          _notifications[index], theme);
+                    },
+                  ),
+                ),
     );
   }
 
@@ -178,6 +239,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         iconColor = theme.colorScheme.primary;
     }
 
+    // Define background colors for unread notifications
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+    final Color unreadBackgroundColor = isDarkMode
+        ? const Color(0xFF1E3A5F) // Deep blue for dark mode
+        : const Color(0xFFE3F2FD); // Light blue for light mode
+
+    final Color readBackgroundColor = theme.colorScheme.surface;
+
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
@@ -197,11 +266,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color:
+              notification.isRead ? readBackgroundColor : unreadBackgroundColor,
           borderRadius: BorderRadius.circular(12),
+          border: !notification.isRead
+              ? Border.all(
+                  color: isDarkMode
+                      ? const Color(0xFF3D5A80)
+                      : const Color(0xFF90CAF9),
+                  width: 1.5,
+                )
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -209,6 +287,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.all(16),
+          onTap: () async {
+            // Mark notification as read when tapped
+            if (!notification.isRead) {
+              await _notificationService.markAsRead(notification.id);
+              _loadNotifications();
+              _badgeNotifier.notifyBadgeUpdate();
+            }
+          },
           leading: Container(
             width: 48,
             height: 48,
@@ -222,7 +308,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             notification.title,
             style: TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+                  notification.isRead ? FontWeight.w600 : FontWeight.bold,
               color: theme.colorScheme.onSurface,
             ),
           ),
@@ -246,11 +333,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           trailing: !notification.isRead
               ? Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? const Color(0xFF64B5F6)
+                        : const Color(0xFF1976D2),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isDarkMode
+                                ? const Color(0xFF64B5F6)
+                                : const Color(0xFF1976D2))
+                            .withValues(alpha: 0.5),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                 )
               : null,

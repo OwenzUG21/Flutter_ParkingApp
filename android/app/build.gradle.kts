@@ -103,4 +103,7 @@ dependencies {
     // Google Play Services for push notifications
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-messaging")
+    
+    // Android 12+ splash screen for instant launch
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }

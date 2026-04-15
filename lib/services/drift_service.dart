@@ -6,13 +6,21 @@ class DriftService {
   factory DriftService() => _instance;
   DriftService._internal();
 
-  late AppDatabase _db;
+  late final AppDatabase _db;
+  bool _isInitialized = false;
 
   Future<void> init() async {
+    if (_isInitialized) return; // Already initialized
     _db = AppDatabase();
+    _isInitialized = true;
   }
 
-  AppDatabase get db => _db;
+  AppDatabase get db {
+    if (!_isInitialized) {
+      throw StateError('DriftService not initialized. Call init() first.');
+    }
+    return _db;
+  }
 
   // ========== PARKING RECORDS ==========
 
@@ -23,7 +31,8 @@ class DriftService {
   Future<ParkingRecord?> getParkingRecordById(int id) async {
     return await (_db.select(
       _db.parkingRecords,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    )..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
   }
 
   Future<List<ParkingRecord>> getAllParkingRecords() async {
@@ -33,26 +42,30 @@ class DriftService {
   Future<List<ParkingRecord>> getActiveParking() async {
     return await (_db.select(
       _db.parkingRecords,
-    )..where((t) => t.exitTime.isNull())).get();
+    )..where((t) => t.exitTime.isNull()))
+        .get();
   }
 
   Future<ParkingRecord?> getActiveParkingByPlate(String plateNumber) async {
-    return await (_db.select(_db.parkingRecords)..where(
-          (t) => t.plateNumber.equals(plateNumber) & t.exitTime.isNull(),
-        ))
+    return await (_db.select(_db.parkingRecords)
+          ..where(
+            (t) => t.plateNumber.equals(plateNumber) & t.exitTime.isNull(),
+          ))
         .getSingleOrNull();
   }
 
   Future<List<ParkingRecord>> searchParkingByPlate(String plateNumber) async {
     return await (_db.select(
       _db.parkingRecords,
-    )..where((t) => t.plateNumber.like('%$plateNumber%'))).get();
+    )..where((t) => t.plateNumber.like('%$plateNumber%')))
+        .get();
   }
 
   Future<void> updateParkingRecord(ParkingRecordsCompanion record) async {
     await (_db.update(
       _db.parkingRecords,
-    )..where((t) => t.id.equals(record.id.value))).write(record);
+    )..where((t) => t.id.equals(record.id.value)))
+        .write(record);
   }
 
   // ========== PARKING SLOTS ==========
@@ -66,22 +79,25 @@ class DriftService {
   }
 
   Future<List<ParkingSlot>> getAvailableSlots() async {
-    return await (_db.select(_db.parkingSlots)..where(
-          (t) => t.isOccupied.equals(false) & t.isReserved.equals(false),
-        ))
+    return await (_db.select(_db.parkingSlots)
+          ..where(
+            (t) => t.isOccupied.equals(false) & t.isReserved.equals(false),
+          ))
         .get();
   }
 
   Future<ParkingSlot?> getSlotByNumber(String slotNumber) async {
     return await (_db.select(
       _db.parkingSlots,
-    )..where((t) => t.slotNumber.equals(slotNumber))).getSingleOrNull();
+    )..where((t) => t.slotNumber.equals(slotNumber)))
+        .getSingleOrNull();
   }
 
   Future<void> updateSlot(ParkingSlotsCompanion slot) async {
     await (_db.update(
       _db.parkingSlots,
-    )..where((t) => t.id.equals(slot.id.value))).write(slot);
+    )..where((t) => t.id.equals(slot.id.value)))
+        .write(slot);
   }
 
   // ========== TRANSACTIONS ==========
@@ -93,18 +109,20 @@ class DriftService {
   Future<List<Transaction>> getAllTransactions() async {
     return await (_db.select(
       _db.transactions,
-    )..orderBy([(t) => OrderingTerm.desc(t.transactionDate)])).get();
+    )..orderBy([(t) => OrderingTerm.desc(t.transactionDate)]))
+        .get();
   }
 
   Future<List<Transaction>> getTransactionsByDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
-    return await (_db.select(_db.transactions)..where(
-          (t) =>
-              t.transactionDate.isBiggerOrEqualValue(startOfDay) &
-              t.transactionDate.isSmallerOrEqualValue(endOfDay),
-        ))
+    return await (_db.select(_db.transactions)
+          ..where(
+            (t) =>
+                t.transactionDate.isBiggerOrEqualValue(startOfDay) &
+                t.transactionDate.isSmallerOrEqualValue(endOfDay),
+          ))
         .get();
   }
 
@@ -131,7 +149,8 @@ class DriftService {
   Future<UserDataTableData?> getUserByUsername(String username) async {
     return await (_db.select(
       _db.userDataTable,
-    )..where((t) => t.username.equals(username))).getSingleOrNull();
+    )..where((t) => t.username.equals(username)))
+        .getSingleOrNull();
   }
 
   Future<List<UserDataTableData>> getAllUsers() async {
@@ -141,7 +160,8 @@ class DriftService {
   Future<void> updateUser(UserDataTableCompanion user) async {
     await (_db.update(
       _db.userDataTable,
-    )..where((t) => t.id.equals(user.id.value))).write(user);
+    )..where((t) => t.id.equals(user.id.value)))
+        .write(user);
   }
 
   // ========== VEHICLE LOGS ==========
@@ -169,20 +189,23 @@ class DriftService {
   Future<void> saveSettings(AppSettingsTableCompanion settings) async {
     final existing = await (_db.select(
       _db.appSettingsTable,
-    )..where((t) => t.id.equals(1))).getSingleOrNull();
+    )..where((t) => t.id.equals(1)))
+        .getSingleOrNull();
     if (existing == null) {
       await _db.into(_db.appSettingsTable).insert(settings);
     } else {
       await (_db.update(
         _db.appSettingsTable,
-      )..where((t) => t.id.equals(1))).write(settings);
+      )..where((t) => t.id.equals(1)))
+          .write(settings);
     }
   }
 
   Future<AppSettingsTableData?> getSettings() async {
     return await (_db.select(
       _db.appSettingsTable,
-    )..where((t) => t.id.equals(1))).getSingleOrNull();
+    )..where((t) => t.id.equals(1)))
+        .getSingleOrNull();
   }
 
   // ========== USER SESSION ==========
@@ -221,13 +244,15 @@ class DriftService {
   Future<String?> getCachedData(String key) async {
     final cache = await (_db.select(
       _db.cacheDataTable,
-    )..where((t) => t.key.equals(key))).getSingleOrNull();
+    )..where((t) => t.key.equals(key)))
+        .getSingleOrNull();
 
     if (cache == null) return null;
     if (cache.expiresAt != null && DateTime.now().isAfter(cache.expiresAt!)) {
       await (_db.delete(
         _db.cacheDataTable,
-      )..where((t) => t.key.equals(key))).go();
+      )..where((t) => t.key.equals(key)))
+          .go();
       return null;
     }
 
@@ -239,11 +264,12 @@ class DriftService {
   }
 
   Future<void> clearExpiredCache() async {
-    await (_db.delete(_db.cacheDataTable)..where(
-          (t) =>
-              t.expiresAt.isNotNull() &
-              t.expiresAt.isSmallerThanValue(DateTime.now()),
-        ))
+    await (_db.delete(_db.cacheDataTable)
+          ..where(
+            (t) =>
+                t.expiresAt.isNotNull() &
+                t.expiresAt.isSmallerThanValue(DateTime.now()),
+          ))
         .go();
   }
 

@@ -75,15 +75,18 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.notifications_outlined,
                     title: 'Notifications',
                     subtitle: 'Manage notification preferences',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/notifications-settings');
+                    },
                   ),
                   _buildSettingItem(
                     icon: Icons.security_outlined,
                     title: 'Privacy & Security',
                     subtitle: 'Control your privacy settings',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/privacy-security');
+                    },
                   ),
-
                   const SizedBox(height: 24),
                   _buildSectionHeader('App Settings'),
                   _buildSettingItem(
@@ -112,7 +115,9 @@ class SettingsScreen extends StatelessWidget {
                         );
                       },
                     ),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/data-storage');
+                    },
                   ),
                   _buildSettingItem(
                     icon: Icons.devices_outlined,
@@ -135,9 +140,10 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.language_outlined,
                     title: 'Language',
                     subtitle: 'English',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/language');
+                    },
                   ),
-
                   const SizedBox(height: 24),
                   _buildSectionHeader('Support'),
                   _buildSettingItem(
@@ -160,24 +166,28 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.info_outline,
                     title: 'About',
                     subtitle: 'Version 1.0.0',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/about');
+                    },
                   ),
-
                   const SizedBox(height: 24),
                   _buildSectionHeader('Legal'),
                   _buildSettingItem(
                     icon: Icons.description_outlined,
                     title: 'Terms of Service',
                     subtitle: 'Read our terms',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/terms-of-service');
+                    },
                   ),
                   _buildSettingItem(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
                     subtitle: 'How we handle your data',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/privacy-policy');
+                    },
                   ),
-
                   const SizedBox(height: 32),
                 ],
               ),

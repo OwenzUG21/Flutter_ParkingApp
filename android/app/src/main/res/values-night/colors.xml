@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme colors matching Flutter app -->
+    <color name="dark_background">#0B141A</color>
+    <color name="dark_appbar">#1F2C34</color>
+    <color name="dark_primary">#00A884</color>
+</resources>

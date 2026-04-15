@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/notification_storage_service.dart';
+import '../services/notification_badge_notifier.dart';
 
 class NotificationBadge extends StatefulWidget {
   final VoidCallback onTap;
@@ -13,11 +14,27 @@ class NotificationBadge extends StatefulWidget {
 class _NotificationBadgeState extends State<NotificationBadge> {
   final NotificationStorageService _notificationService =
       NotificationStorageService();
+  final NotificationBadgeNotifier _badgeNotifier = NotificationBadgeNotifier();
   int _unreadCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadUnreadCount();
+    // Listen for badge update notifications
+    _badgeNotifier.addListener(_loadUnreadCount);
+  }
+
+  @override
+  void dispose() {
+    _badgeNotifier.removeListener(_loadUnreadCount);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(NotificationBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Refresh count when widget rebuilds
     _loadUnreadCount();
   }
 

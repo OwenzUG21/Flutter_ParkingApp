@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#00000000</color>
+    <!-- Light theme colors matching Flutter app -->
+    <color name="light_background">#F5F7FA</color>
+    <color name="light_appbar">#FFFFFF</color>
+    <color name="light_primary">#5B6B9E</color>
+    <!-- Dark theme colors (defaults for light mode) -->
+    <color name="dark_background">#F5F7FA</color>
+    <color name="dark_appbar">#FFFFFF</color>
+    <color name="dark_primary">#5B6B9E</color>
 </resources>

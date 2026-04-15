@@ -22,8 +22,6 @@ class ParkingMapScreen extends StatefulWidget {
 class _ParkingMapScreenState extends State<ParkingMapScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  late var mapController;
-
   final gmaps.LatLng initialPosition = gmaps.LatLng(0.3476, 32.5825); // Kampala
 
   final WeatherService _weatherService = WeatherService();
@@ -96,8 +94,8 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
           spot.status.contains('Many')
               ? gmaps.BitmapDescriptor.hueGreen
               : spot.status.contains('Few')
-              ? gmaps.BitmapDescriptor.hueOrange
-              : gmaps.BitmapDescriptor.hueRed,
+                  ? gmaps.BitmapDescriptor.hueOrange
+                  : gmaps.BitmapDescriptor.hueRed,
         ),
       );
     }).toSet();

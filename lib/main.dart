@@ -122,7 +122,6 @@
 // }
 
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:project8/screens/bookingscreen.dart';
 import 'package:project8/screens/dashboard.dart';
 import 'package:project8/screens/reservationscreen.dart';
@@ -134,59 +133,67 @@ import 'package:project8/screens/edit_profile_screen.dart';
 import 'package:project8/screens/profile_screen.dart';
 import 'package:project8/screens/notifications_screen.dart';
 import 'package:project8/screens/onesignal_test_screen.dart';
+import 'package:project8/screens/help_center_screen.dart';
+import 'package:project8/screens/about_screen.dart';
+import 'package:project8/screens/privacy_policy_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:project8/screens/notifications_settings_screen.dart';
+import 'package:project8/screens/privacy_security_screen.dart';
+import 'package:project8/screens/data_storage_screen.dart';
+import 'package:project8/screens/language_screen.dart';
+import 'package:project8/screens/terms_of_service_screen.dart';
 import 'package:project8/services/theme_service.dart';
 import 'package:project8/themes/app_theme.dart';
 import 'screens/login.dart';
 import 'screens/signup.dart';
 import 'screens/splash_screen.dart';
-import 'firebase_options.dart';
-import 'services/database_manager.dart';
-import 'services/notification_service.dart';
-import 'services/onesignal_service.dart';
-import 'services/onesignal_diagnostic.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Initialize databases (Isar + Hive + Drift)
-  await DatabaseManager().initialize();
-
-  // Initialize notification service
-  await NotificationService().initialize();
-
-  // Initialize OneSignal
-  await OneSignalService().initialize();
-
-  // Run diagnostics (remove in production)
-  await Future.delayed(const Duration(seconds: 3));
-  await OneSignalDiagnostic.runDiagnostics();
-
-  // Initialize theme service
-  await ThemeService().initialize();
-
   runApp(const ParkFlexApp());
 }
 
 class ParkFlexApp extends StatelessWidget {
   const ParkFlexApp({super.key});
 
+  void _updateSystemUI(ThemeMode themeMode, Brightness platformBrightness) {
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            platformBrightness == Brightness.dark);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: isDark ? Colors.black : Colors.white,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: ThemeService(),
       builder: (context, _) {
+        final themeMode = ThemeService().themeMode;
+        final platformBrightness =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness;
+
+        // Update system UI whenever theme changes
+        _updateSystemUI(themeMode, platformBrightness);
+
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: "ParkFlexApp",
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeService().themeMode,
+          themeMode: themeMode,
           initialRoute: '/splash',
           navigatorKey: _navigatorKey,
           routes: {
@@ -199,6 +206,15 @@ class ParkFlexApp extends StatelessWidget {
             '/edit-profile': (context) => const EditProfileScreen(),
             '/notifications': (context) => const NotificationsScreen(),
             '/onesignal-test': (context) => const OneSignalTestScreen(),
+            '/help-center': (context) => const HelpCenterScreen(),
+            '/about': (context) => const AboutScreen(),
+            '/privacy-policy': (context) => const PrivacyPolicyScreen(),
+            '/notifications-settings': (context) =>
+                const NotificationsSettingsScreen(),
+            '/privacy-security': (context) => const PrivacySecurityScreen(),
+            '/data-storage': (context) => const DataStorageScreen(),
+            '/language': (context) => const LanguageScreen(),
+            '/terms-of-service': (context) => const TermsOfServiceScreen(),
           },
           onGenerateRoute: (settings) {
             if (settings.name == '/dashboard') {

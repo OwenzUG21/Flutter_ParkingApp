@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/user_profile_service.dart';
+import 'dashboard.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -207,13 +208,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildMenuItem(
                     icon: Icons.payment,
                     title: 'Payment Methods',
-                    onTap: () {},
+                    onTap: () {
+                      // Navigate to payment tab (index 2 in the main tab controller)
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const DashboardScreen(initialTab: 2),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuItem(
                     icon: Icons.history,
                     title: 'Payment History',
                     onTap: () {
-                      Navigator.pushNamed(context, '/payment-history');
+                      // Navigate to payment tab (index 2 in the main tab controller)
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const DashboardScreen(initialTab: 2),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -228,17 +245,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildMenuItem(
                     icon: Icons.help_outline,
                     title: 'Help Center',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/help-center');
+                    },
                   ),
                   _buildMenuItem(
                     icon: Icons.info_outline,
                     title: 'About',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/about');
+                    },
                   ),
                   _buildMenuItem(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, '/privacy-policy');
+                    },
                   ),
                 ],
               ),

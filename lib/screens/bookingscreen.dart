@@ -289,8 +289,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                 color: widget.spacesLeft > 20
                                     ? Colors.green
                                     : widget.spacesLeft > 10
-                                    ? Colors.orange
-                                    : Colors.red,
+                                        ? Colors.orange
+                                        : Colors.red,
                               ),
                               _buildInfoChip(
                                 icon: Icons.confirmation_number,
@@ -700,8 +700,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                   final hours = _durationHours();
                                   final parkingRate =
                                       widget.pricePerHour * hours;
-                                  final serviceFee = (parkingRate * 0.15)
-                                      .round();
+                                  final serviceFee =
+                                      (parkingRate * 0.15).round();
                                   final totalCost = parkingRate + serviceFee;
                                   final plateNumber = _vehiclePlateController
                                       .text
@@ -720,18 +720,17 @@ class _BookingScreenState extends State<BookingScreen> {
                                   );
 
                                   // Create booking in database (this persists!)
-                                  final booking = await _bookingService
-                                      .createBooking(
-                                        plateNumber: plateNumber,
-                                        slotNumber: slotNumber,
-                                        startTime: bookingStartTime,
-                                        durationHours: hours,
-                                        parkingRate: parkingRate.toDouble(),
-                                        serviceFee: serviceFee.toDouble(),
-                                        vehicleType: 'car',
-                                        notes:
-                                            'Booking from ${widget.parkingName}',
-                                      );
+                                  final booking =
+                                      await _bookingService.createBooking(
+                                    plateNumber: plateNumber,
+                                    slotNumber: slotNumber,
+                                    startTime: bookingStartTime,
+                                    durationHours: hours,
+                                    parkingRate: parkingRate.toDouble(),
+                                    serviceFee: serviceFee.toDouble(),
+                                    vehicleType: 'car',
+                                    notes: 'Booking from ${widget.parkingName}',
+                                  );
 
                                   print(
                                     '✅ Booking created in database: ID ${booking.id}, Plate: $plateNumber, Slot: $slotNumber',
@@ -742,10 +741,10 @@ class _BookingScreenState extends State<BookingScreen> {
                                   // Trigger booking completed notification
                                   await NotificationService()
                                       .showBookingCompletedNotification(
-                                        parkingName: widget.parkingName,
-                                        bookingDate: selectedDate,
-                                        slotNumber: slotNumber,
-                                      );
+                                    parkingName: widget.parkingName,
+                                    bookingDate: selectedDate,
+                                    slotNumber: slotNumber,
+                                  );
 
                                   // Schedule notification for when booking becomes active
                                   if (bookingStartTime.isAfter(
@@ -753,21 +752,20 @@ class _BookingScreenState extends State<BookingScreen> {
                                   )) {
                                     await NotificationService()
                                         .scheduleBookingActiveNotification(
-                                          parkingName: widget.parkingName,
-                                          scheduledTime: bookingStartTime,
-                                          slotNumber: slotNumber,
-                                          notificationId:
-                                              DateTime.now()
-                                                  .millisecondsSinceEpoch %
-                                              100000,
-                                        );
+                                      parkingName: widget.parkingName,
+                                      scheduledTime: bookingStartTime,
+                                      slotNumber: slotNumber,
+                                      notificationId: DateTime.now()
+                                              .millisecondsSinceEpoch %
+                                          100000,
+                                    );
                                   } else {
                                     // If booking is for now, show parking started notification
                                     await NotificationService()
                                         .showParkingStartedNotification(
-                                          parkingName: widget.parkingName,
-                                          slotNumber: slotNumber,
-                                        );
+                                      parkingName: widget.parkingName,
+                                      slotNumber: slotNumber,
+                                    );
                                   }
 
                                   if (mounted) {
@@ -838,7 +836,7 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           boxShadow: [
             BoxShadow(
               blurRadius: 20,

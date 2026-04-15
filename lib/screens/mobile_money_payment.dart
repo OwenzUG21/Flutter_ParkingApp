@@ -4,6 +4,7 @@ import '../models/reservation_manager.dart';
 import '../themes/colors.dart';
 import '../services/notification_service.dart';
 import '../services/booking_service.dart';
+import '../services/preferences_service.dart';
 
 class MobileMoneyPaymentScreen extends StatefulWidget {
   final int totalAmount;
@@ -39,15 +40,22 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
   final TextEditingController phoneController = TextEditingController();
   int selectedNavIndex = 0;
   final _bookingService = BookingService();
+  PreferencesService? _prefsService;
 
   @override
   void initState() {
     super.initState();
+    _initPrefs();
     print('💰 MobileMoneyPaymentScreen initialized');
     print('   ReservationId: ${widget.reservationId}');
     print('   ParkingRecordId: ${widget.parkingRecordId}');
     print('   VehiclePlate: ${widget.vehiclePlate}');
     print('   TotalAmount: ${widget.totalAmount}');
+  }
+
+  Future<void> _initPrefs() async {
+    _prefsService = await PreferencesService.getInstance();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -457,9 +465,9 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                                 );
                                 ReservationManager.instance
                                     .updateReservationPaymentStatus(
-                                      widget.reservationId!,
-                                      'Paid',
-                                    );
+                                  widget.reservationId!,
+                                  'Paid',
+                                );
                                 print('✅ Payment status update called');
                               }
                             } else {
@@ -473,9 +481,25 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                             // Trigger payment success notification
                             await NotificationService()
                                 .showPaymentCompletedNotification(
-                                  amount: widget.totalAmount.toDouble(),
-                                  parkingName: widget.parkingName,
-                                );
+                              amount: widget.totalAmount.toDouble(),
+                              parkingName: widget.parkingName,
+                            );
+
+                            // Save payment method phone number
+                            if (_prefsService != null &&
+                                phoneController.text.isNotEmpty) {
+                              if (selectedProvider == 'MTN') {
+                                await _prefsService!
+                                    .saveMtnNumber(phoneController.text);
+                                print(
+                                    '✅ Saved MTN number: ${phoneController.text}');
+                              } else if (selectedProvider == 'Airtel') {
+                                await _prefsService!
+                                    .saveAirtelNumber(phoneController.text);
+                                print(
+                                    '✅ Saved Airtel number: ${phoneController.text}');
+                              }
+                            }
 
                             // Show success message
                             if (!mounted) return;
@@ -658,8 +682,8 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
 
   String _formatCurrency(int amount) {
     return amount.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 }

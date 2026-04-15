@@ -22,6 +22,9 @@ class PreferencesService {
   static const String _keyThemeMode = 'themeMode';
   static const String _keyLastScreen = 'lastScreen';
   static const String _keyUserEmail = 'userEmail';
+  static const String _keyMtnNumber = 'mtnPaymentNumber';
+  static const String _keyAirtelNumber = 'airtelPaymentNumber';
+  static const String _keyMastercardNumber = 'mastercardNumber';
 
   // ==================== USERNAME ====================
 
@@ -195,6 +198,68 @@ class PreferencesService {
     } catch (e) {
       print('Error getting all keys: $e');
       return {};
+    }
+  }
+
+  // ==================== PAYMENT METHODS ====================
+
+  /// Save MTN payment number
+  Future<bool> saveMtnNumber(String phoneNumber) async {
+    try {
+      return await _preferences!.setString(_keyMtnNumber, phoneNumber);
+    } catch (e) {
+      print('Error saving MTN number: $e');
+      return false;
+    }
+  }
+
+  /// Get MTN payment number
+  String? getMtnNumber() {
+    try {
+      return _preferences!.getString(_keyMtnNumber);
+    } catch (e) {
+      print('Error getting MTN number: $e');
+      return null;
+    }
+  }
+
+  /// Save Airtel payment number
+  Future<bool> saveAirtelNumber(String phoneNumber) async {
+    try {
+      return await _preferences!.setString(_keyAirtelNumber, phoneNumber);
+    } catch (e) {
+      print('Error saving Airtel number: $e');
+      return false;
+    }
+  }
+
+  /// Get Airtel payment number
+  String? getAirtelNumber() {
+    try {
+      return _preferences!.getString(_keyAirtelNumber);
+    } catch (e) {
+      print('Error getting Airtel number: $e');
+      return null;
+    }
+  }
+
+  /// Save Mastercard number
+  Future<bool> saveMastercardNumber(String cardNumber) async {
+    try {
+      return await _preferences!.setString(_keyMastercardNumber, cardNumber);
+    } catch (e) {
+      print('Error saving Mastercard number: $e');
+      return false;
+    }
+  }
+
+  /// Get Mastercard number
+  String? getMastercardNumber() {
+    try {
+      return _preferences!.getString(_keyMastercardNumber);
+    } catch (e) {
+      print('Error getting Mastercard number: $e');
+      return null;
     }
   }
 }

@@ -10,6 +10,9 @@ import '../themes/colors.dart';
 import '../services/auth_service.dart';
 import '../services/theme_service.dart';
 import '../services/weather_service.dart';
+import '../services/favorites_service.dart';
+import '../services/preferences_service.dart';
+import '../services/print_service.dart';
 import '../widgets/notification_badge.dart';
 import 'profile_screen.dart';
 import 'community_screen.dart';
@@ -52,6 +55,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   final ScrollController _scrollController = ScrollController();
   bool _showSearchBar = true;
   double _lastScrollOffset = 0;
+  bool _showFavoritesOnly = false;
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchFocused = false;
 
   final List<ParkingLot> _parkingLots = [
     ParkingLot(
@@ -136,6 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
+    _initializeFavorites();
     _tabController = TabController(
       length: 3,
       vsync: this,
@@ -152,13 +159,19 @@ class _DashboardScreenState extends State<DashboardScreen>
     // Add scroll listener to hide/show search bar
     _scrollController.addListener(_onScroll);
 
+    // Add focus listener to search field
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchFocused = _searchFocusNode.hasFocus;
+      });
+    });
+
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
       setState(() {
         for (final lot in _parkingLots) {
           final delta = _random.nextInt(5) - 2;
-          final next = (lot.availableSlots + delta)
-              .clamp(0, lot.totalSlots)
-              .toInt();
+          final next =
+              (lot.availableSlots + delta).clamp(0, lot.totalSlots).toInt();
           lot.availableSlots = next;
         }
       });
@@ -168,6 +181,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     _fetchWeather();
   }
 
+  Future<void> _initializeFavorites() async {
+    await FavoritesService().initialize();
+    if (mounted) setState(() {});
+  }
+
   void _onScroll() {
     final currentOffset = _scrollController.offset;
     final delta = currentOffset - _lastScrollOffset;
@@ -175,10 +193,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     // Only trigger if scrolled more than 10 pixels
     if (delta.abs() > 10) {
       if (delta > 0 && _showSearchBar) {
-        // Scrolling down - hide search bar
+        // Scrolling down - hide search bar and unfocus search field
         setState(() {
           _showSearchBar = false;
         });
+        _searchFocusNode.unfocus();
       } else if (delta < 0 && !_showSearchBar) {
         // Scrolling up - show search bar
         setState(() {
@@ -209,16 +228,25 @@ class _DashboardScreenState extends State<DashboardScreen>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _scrollController.dispose();
     _timer?.cancel();
     super.dispose();
   }
 
   List<ParkingLot> get _filteredParkingLots {
-    if (_searchQuery.isEmpty) {
-      return _parkingLots;
+    var filtered = _parkingLots;
+
+    // Apply favorites filter
+    if (_showFavoritesOnly) {
+      filtered = filtered.where((lot) => lot.isFavorite).toList();
     }
-    return _parkingLots.where((lot) {
+
+    // Apply search filter
+    if (_searchQuery.isEmpty) {
+      return filtered;
+    }
+    return filtered.where((lot) {
       return lot.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           lot.location.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
@@ -227,46 +255,58 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: _buildDrawer(context),
-      body: SafeArea(child: _getSelectedScreen()),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 20,
-              color: Colors.black.withValues(alpha: 0.1),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 12),
-            child: GNav(
-              rippleColor: Colors.grey.withValues(alpha: 0.1),
-              hoverColor: Colors.grey.withValues(alpha: 0.05),
-              gap: 6,
-              activeColor: Colors.white,
-              iconSize: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              duration: const Duration(milliseconds: 400),
-              tabBackgroundColor: AppColors.redButton,
-              color: Colors.grey.shade600,
-              textSize: 12,
-              tabs: const [
-                GButton(icon: Icons.home_rounded, text: 'Home'),
-                GButton(icon: Icons.groups_rounded, text: 'Community'),
-                GButton(icon: Icons.person_rounded, text: 'Profile'),
-                GButton(icon: Icons.settings_rounded, text: 'Settings'),
-              ],
-              selectedIndex: selectedNavIndex,
-              onTabChange: (index) {
-                setState(() {
-                  selectedNavIndex = index;
-                });
-              },
+    return PopScope(
+      canPop: selectedNavIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && selectedNavIndex != 0) {
+          setState(() {
+            selectedNavIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        drawer: _buildDrawer(context),
+        body: SafeArea(child: _getSelectedScreen()),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 20,
+                color: Colors.black.withValues(alpha: 0.1),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 12),
+              child: GNav(
+                rippleColor: Colors.grey.withValues(alpha: 0.1),
+                hoverColor: Colors.grey.withValues(alpha: 0.05),
+                gap: 6,
+                activeColor: Colors.white,
+                iconSize: 24,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                duration: const Duration(milliseconds: 400),
+                tabBackgroundColor: AppColors.redButton,
+                color: Colors.grey.shade600,
+                textSize: 12,
+                tabs: const [
+                  GButton(icon: Icons.home_rounded, text: 'Home'),
+                  GButton(icon: Icons.groups_rounded, text: 'Community'),
+                  GButton(icon: Icons.person_rounded, text: 'Profile'),
+                  GButton(icon: Icons.settings_rounded, text: 'Settings'),
+                ],
+                selectedIndex: selectedNavIndex,
+                onTabChange: (index) {
+                  setState(() {
+                    selectedNavIndex = index;
+                  });
+                },
+              ),
             ),
           ),
         ),
@@ -303,40 +343,47 @@ class _DashboardScreenState extends State<DashboardScreen>
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: theme.brightness == Brightness.dark
-                          ? theme.colorScheme.surfaceContainerHighest
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Center(
-                      child: Lottie.asset(
-                        'assets/animations/parking_logo.json',
-                        width: 70,
-                        height: 70,
-                        fit: BoxFit.contain,
-                        repeat: true,
-                      ),
-                    ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: theme.brightness == Brightness.dark
+                        ? Container(
+                            width: 80,
+                            height: 80,
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: Lottie.asset(
+                              'assets/animations/parking_logo.json',
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              repeat: true,
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/launcher_icon/pk.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     "ParkFlexApp",
                     style: TextStyle(
-                      color: theme.colorScheme.onSurface,
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF1A1F36),
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Smart Parking Solutions",
                     style: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 14,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
@@ -413,16 +460,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                       children: [
                         Icon(
                           Icons.dark_mode,
-                          color: theme.colorScheme.onSurface,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.9)
+                              : const Color(0xFF1A1F36),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
                             'Dark Mode',
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface,
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.95)
+                                  : const Color(0xFF1A1F36),
                               fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ),
@@ -469,18 +521,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ListTile(
-      leading: Icon(icon, color: theme.colorScheme.onSurface),
+      leading: Icon(
+        icon,
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.9)
+            : const Color(0xFF1A1F36),
+      ),
       title: Text(
         title,
         style: TextStyle(
-          color: theme.colorScheme.onSurface,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.95)
+              : const Color(0xFF1A1F36),
           fontSize: 16,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
         ),
       ),
       onTap: onTap,
-      hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+      hoverColor: isDark
+          ? Colors.white.withValues(alpha: 0.1)
+          : const Color(0xFF00A884).withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
@@ -619,8 +683,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                       style: TextStyle(
                                         color:
                                             theme.brightness == Brightness.dark
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade600,
+                                                ? Colors.grey.shade400
+                                                : Colors.grey.shade600,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -726,6 +790,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                         child: TextField(
                           controller: _searchController,
+                          focusNode: _searchFocusNode,
                           onChanged: (value) {
                             setState(() {
                               _searchQuery = value;
@@ -774,6 +839,45 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ),
                         ),
                       ),
+
+                      // Show filter chips only when search is focused
+                      if (_isSearchFocused) ...[
+                        const SizedBox(height: 12),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              FilterChip(
+                                label: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _showFavoritesOnly
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      size: 18,
+                                      color: _showFavoritesOnly
+                                          ? Colors.red
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text('Favorites'),
+                                  ],
+                                ),
+                                selected: _showFavoritesOnly,
+                                onSelected: (selected) {
+                                  setState(() {
+                                    _showFavoritesOnly = selected;
+                                  });
+                                },
+                                selectedColor:
+                                    Colors.red.withValues(alpha: 0.15),
+                                checkmarkColor: Colors.red,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -782,52 +886,59 @@ class _DashboardScreenState extends State<DashboardScreen>
 
             // Parking Lots Grid
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: _filteredParkingLots.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No parking locations found',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w500,
+              child: GestureDetector(
+                onTap: () {
+                  // Unfocus search field when tapping on the parking lots area
+                  _searchFocusNode.unfocus();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: _filteredParkingLots.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.grey.shade400,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Try a different search term',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade500,
+                              const SizedBox(height: 16),
+                              Text(
+                                'No parking locations found',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                'Try a different search term',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : GridView.builder(
+                          controller: _scrollController,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.65,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          itemCount: _filteredParkingLots.length,
+                          itemBuilder: (context, index) {
+                            return _buildParkingCard(
+                                _filteredParkingLots[index]);
+                          },
                         ),
-                      )
-                    : GridView.builder(
-                        controller: _scrollController,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.65,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
-                        itemCount: _filteredParkingLots.length,
-                        itemBuilder: (context, index) {
-                          return _buildParkingCard(_filteredParkingLots[index]);
-                        },
-                      ),
+                ),
               ),
             ),
           ],
@@ -908,7 +1019,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(16),
-
                       topRight: Radius.circular(16),
                     ),
                     image: DecorationImage(
@@ -1110,6 +1220,8 @@ class ParkingLot {
   final int pricePerHour;
   final String imagePath;
   final double rating;
+
+  bool get isFavorite => FavoritesService().isFavorite(name);
 }
 
 PageRouteBuilder<dynamic> buildSmoothRoute(Widget page) {
@@ -1143,6 +1255,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   int _selectedSubTab = 0;
   final Set<int> _expandedHistoryItems = {};
   final _bookingService = BookingService();
+  final _printService = PrintService();
 
   List<ParkingRecord> _activeBookings = [];
   List<ParkingRecord> _upcomingBookings = [];
@@ -1305,8 +1418,8 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
             color: isSelected
                 ? theme.colorScheme.primary
                 : theme.brightness == Brightness.dark
-                ? theme.colorScheme.surfaceContainerHighest
-                : Colors.grey.shade100,
+                    ? theme.colorScheme.surfaceContainerHighest
+                    : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(25),
           ),
           child: Text(
@@ -1581,8 +1694,27 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
+                        onPressed: () async {
                           // Print reservation
+                          try {
+                            await _printService.printBookingReceipt(
+                              location:
+                                  reservation['location'] ?? 'Unknown Location',
+                              spot: reservation['spot'] ?? 'N/A',
+                              time: reservation['time'] ?? '',
+                              cost: reservation['cost'] ?? '0',
+                              status: status,
+                            );
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to print: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         },
                         icon: const Icon(Icons.print, size: 16),
                         label: const Text('Print'),
@@ -1874,17 +2006,16 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                           decoration: BoxDecoration(
                             color:
                                 paymentStatus.toLowerCase().contains('pending')
-                                ? Colors.orange.shade50
-                                : Colors.green.shade50,
+                                    ? Colors.orange.shade50
+                                    : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             displayPaymentStatus,
                             style: TextStyle(
-                              color:
-                                  paymentStatus.toLowerCase().contains(
-                                    'pending',
-                                  )
+                              color: paymentStatus.toLowerCase().contains(
+                                        'pending',
+                                      )
                                   ? Colors.orange.shade700
                                   : Colors.green.shade700,
                               fontSize: 10,
@@ -1994,8 +2125,29 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           // Print
+                          try {
+                            await _printService.printBookingReceipt(
+                              location:
+                                  reservation['location'] ?? 'Unknown Location',
+                              spot: reservation['spot'] ?? 'N/A',
+                              time: reservation['time'] ??
+                                  reservation['timeRange'] ??
+                                  '',
+                              cost: reservation['cost'] ?? '0',
+                              status: reservation['status'] ?? 'Active',
+                            );
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to print: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: theme.colorScheme.primary,
@@ -2038,14 +2190,12 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                                     reservation['parkingRecordId'],
                                 'parkingName': reservation['location'],
                                 'parkingLocation': reservation['address'],
-                                'date':
-                                    DateTime.tryParse(
+                                'date': DateTime.tryParse(
                                       reservation['date'] ?? '',
                                     ) ??
                                     DateTime.now(),
                                 'duration': reservation['duration'],
-                                'hours':
-                                    int.tryParse(
+                                'hours': int.tryParse(
                                       reservation['duration']
                                               ?.toString()
                                               .replaceAll(
@@ -2055,22 +2205,21 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                                           '2',
                                     ) ??
                                     2,
-                                'parkingRate':
-                                    (reservation['parkingRate'] is double
+                                'parkingRate': (reservation['parkingRate']
+                                            is double
                                         ? (reservation['parkingRate'] as double)
-                                              .toInt()
+                                            .toInt()
                                         : reservation['parkingRate']) ??
                                     10000,
-                                'serviceFee':
-                                    (reservation['serviceFee'] is double
+                                'serviceFee': (reservation['serviceFee']
+                                            is double
                                         ? (reservation['serviceFee'] as double)
-                                              .toInt()
+                                            .toInt()
                                         : reservation['serviceFee']) ??
                                     1500,
-                                'totalCost':
-                                    (reservation['totalCost'] is double
+                                'totalCost': (reservation['totalCost'] is double
                                         ? (reservation['totalCost'] as double)
-                                              .toInt()
+                                            .toInt()
                                         : reservation['totalCost']) ??
                                     11500,
                                 'slotNumber': int.tryParse(
@@ -2314,8 +2463,8 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
     final theme = Theme.of(context);
     final availableCount = widget.lot.availableSlots;
     final totalCount = widget.lot.totalSlots;
-    final occupancyRate = ((totalCount - availableCount) / totalCount * 100)
-        .toInt();
+    final occupancyRate =
+        ((totalCount - availableCount) / totalCount * 100).toInt();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -2341,6 +2490,29 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
               ),
               onPressed: () => Navigator.pop(context),
             ),
+            actions: [
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    widget.lot.isFavorite
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: widget.lot.isFavorite ? Colors.red : Colors.grey,
+                    size: 20,
+                  ),
+                ),
+                onPressed: () async {
+                  await FavoritesService().toggleFavorite(widget.lot.name);
+                  setState(() {});
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -2574,11 +2746,11 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: 0.95,
-                            ),
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.95,
+                        ),
                         itemCount: widget.lot.totalSlots,
                         itemBuilder: (context, index) {
                           final slotNumber = index + 1;
@@ -2942,21 +3114,32 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
   final int _maxVisibleHistory = 3;
   final _bookingService = BookingService();
   List<ParkingRecord> _allBookings = [];
+  List<ParkingRecord> _activeBookings = [];
   bool _isLoading = true;
+  PreferencesService? _prefsService;
 
   @override
   void initState() {
     super.initState();
+    _initPrefs();
     _loadBookings();
+  }
+
+  Future<void> _initPrefs() async {
+    _prefsService = await PreferencesService.getInstance();
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadBookings() async {
     setState(() => _isLoading = true);
     try {
+      await _bookingService.updateBookingStatuses();
       final bookings = await _bookingService.getAllBookings();
+      final active = await _bookingService.getActiveBookings();
       if (mounted) {
         setState(() {
           _allBookings = bookings;
+          _activeBookings = active;
           _isLoading = false;
         });
       }
@@ -2972,6 +3155,17 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     double total = 0;
     for (final booking in _allBookings) {
       total += booking.amountCharged ?? 0;
+    }
+    return total;
+  }
+
+  double get _activeSessionCost {
+    double total = 0;
+    for (final booking in _activeBookings) {
+      if (booking.paymentStatus == 'paid' ||
+          booking.paymentStatus == 'completed') {
+        total += booking.amountCharged ?? 0;
+      }
     }
     return total;
   }
@@ -3104,6 +3298,8 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
   }
 
   Widget _buildStatsCards() {
+    final hasActiveSession =
+        _activeBookings.isNotEmpty && _activeSessionCost > 0;
     return Row(
       children: [
         Expanded(
@@ -3120,11 +3316,11 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
         Expanded(
           child: _buildStatCard(
             title: 'Active Session Cost',
-            value: 'UGX 0.00',
+            value: 'UGX ${_activeSessionCost.toStringAsFixed(2)}',
             icon: Icons.access_time,
-            iconColor: Colors.orange,
-            meta: 'No active session',
-            metaColor: Colors.grey,
+            iconColor: hasActiveSession ? Colors.orange : Colors.grey,
+            meta: hasActiveSession ? 'Currently active' : 'No active session',
+            metaColor: hasActiveSession ? Colors.orange : Colors.grey,
           ),
         ),
       ],
@@ -3208,6 +3404,10 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
 
   Widget _buildPaymentMethodsSection() {
     final theme = Theme.of(context);
+    final mtnNumber = _prefsService?.getMtnNumber();
+    final airtelNumber = _prefsService?.getAirtelNumber();
+    final mastercardNumber = _prefsService?.getMastercardNumber();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -3256,18 +3456,20 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
               Expanded(
                 child: _buildPaymentMethodCard(
                   title: 'MTN Mobile Money',
-                  subtitle: 'Add during payment',
+                  subtitle: mtnNumber ?? 'Add during payment',
                   imagePath: 'assets/lines/mtn.png',
                   buttonText: 'Add',
+                  phoneNumber: mtnNumber,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildPaymentMethodCard(
                   title: 'Airtel Money',
-                  subtitle: 'Add during payment',
+                  subtitle: airtelNumber ?? 'Add during payment',
                   imagePath: 'assets/lines/aritel.png',
                   buttonText: 'Add',
+                  phoneNumber: airtelNumber,
                 ),
               ),
             ],
@@ -3275,10 +3477,11 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
           const SizedBox(height: 12),
           _buildPaymentMethodCard(
             title: 'Visa or Mastercard',
-            subtitle: 'Add a card during payment',
+            subtitle: mastercardNumber ?? 'Add a card during payment',
             imagePath: null,
             buttonText: 'Manage',
             icon: Icons.credit_card,
+            phoneNumber: mastercardNumber,
           ),
         ],
       ),
@@ -3291,8 +3494,110 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     String? imagePath,
     IconData? icon,
     required String buttonText,
+    String? phoneNumber,
   }) {
     final theme = Theme.of(context);
+    final bool hasPaymentMethod = phoneNumber != null && phoneNumber.isNotEmpty;
+
+    // If payment method is saved and has image, show full background design
+    if (hasPaymentMethod && imagePath != null) {
+      return Container(
+        height: 180,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          image: DecorationImage(
+            image: AssetImage(imagePath),
+            fit: BoxFit.cover,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.3),
+                Colors.black.withValues(alpha: 0.6),
+              ],
+            ),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black45,
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    phoneNumber,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black45,
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: Text(
+                        buttonText,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Default card design (when no payment method is saved)
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

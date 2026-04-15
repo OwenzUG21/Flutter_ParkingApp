@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_model.dart';
+import 'notification_badge_notifier.dart';
 
 class NotificationStorageService {
   static final NotificationStorageService _instance =
@@ -10,6 +11,7 @@ class NotificationStorageService {
 
   static const String _notificationsKey = 'app_notifications';
   static const int _maxNotifications = 100;
+  final NotificationBadgeNotifier _badgeNotifier = NotificationBadgeNotifier();
 
   /// Save a notification to storage
   Future<void> saveNotification(NotificationModel notification) async {
@@ -26,6 +28,9 @@ class NotificationStorageService {
 
     final jsonList = notifications.map((n) => n.toJson()).toList();
     await prefs.setString(_notificationsKey, jsonEncode(jsonList));
+
+    // Notify badge to refresh after saving new notification
+    _badgeNotifier.notifyBadgeUpdate();
   }
 
   /// Get all notifications
@@ -50,12 +55,14 @@ class NotificationStorageService {
     final prefs = await SharedPreferences.getInstance();
     final notifications = await getAllNotifications();
 
-    final updatedNotifications = notifications
-        .map((n) => n.copyWith(isRead: true))
-        .toList();
+    final updatedNotifications =
+        notifications.map((n) => n.copyWith(isRead: true)).toList();
 
     final jsonList = updatedNotifications.map((n) => n.toJson()).toList();
     await prefs.setString(_notificationsKey, jsonEncode(jsonList));
+
+    // Notify badge to refresh after marking all as read
+    _badgeNotifier.notifyBadgeUpdate();
   }
 
   /// Mark a specific notification as read
@@ -72,6 +79,9 @@ class NotificationStorageService {
 
     final jsonList = updatedNotifications.map((n) => n.toJson()).toList();
     await prefs.setString(_notificationsKey, jsonEncode(jsonList));
+
+    // Notify badge to refresh after marking as read
+    _badgeNotifier.notifyBadgeUpdate();
   }
 
   /// Delete a notification
@@ -83,11 +93,17 @@ class NotificationStorageService {
 
     final jsonList = notifications.map((n) => n.toJson()).toList();
     await prefs.setString(_notificationsKey, jsonEncode(jsonList));
+
+    // Notify badge to refresh after deletion
+    _badgeNotifier.notifyBadgeUpdate();
   }
 
   /// Clear all notifications
   Future<void> clearAllNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_notificationsKey);
+
+    // Notify badge to refresh after clearing all
+    _badgeNotifier.notifyBadgeUpdate();
   }
 }

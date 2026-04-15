@@ -30,10 +30,10 @@ class NotificationService {
     // iOS initialization settings
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
 
     // Combined initialization settings
     const InitializationSettings initSettings = InitializationSettings(
@@ -57,14 +57,12 @@ class NotificationService {
   Future<void> _requestPermissions() async {
     await _notifications
         .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >()
+            IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(alert: true, badge: true, sound: true);
 
     await _notifications
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
   }
 
@@ -90,18 +88,18 @@ class NotificationService {
   }) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'payment_channel',
-          'Payment Notifications',
-          channelDescription: 'Notifications for payment confirmations',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-          playSound: true,
-          enableVibration: true,
-          showWhen: true,
-          styleInformation: BigTextStyleInformation(''),
-          visibility: NotificationVisibility.public,
-        );
+      'payment_channel',
+      'Payment Notifications',
+      channelDescription: 'Notifications for payment confirmations',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      showWhen: true,
+      styleInformation: BigTextStyleInformation(''),
+      visibility: NotificationVisibility.public,
+    );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -146,18 +144,18 @@ class NotificationService {
   }) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'parking_channel',
-          'Parking Notifications',
-          channelDescription: 'Notifications for parking session updates',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-          playSound: true,
-          enableVibration: true,
-          showWhen: true,
-          styleInformation: BigTextStyleInformation(''),
-          visibility: NotificationVisibility.public,
-        );
+      'parking_channel',
+      'Parking Notifications',
+      channelDescription: 'Notifications for parking session updates',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      showWhen: true,
+      styleInformation: BigTextStyleInformation(''),
+      visibility: NotificationVisibility.public,
+    );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -203,18 +201,18 @@ class NotificationService {
   }) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'booking_channel',
-          'Booking Notifications',
-          channelDescription: 'Notifications for booking confirmations',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-          playSound: true,
-          enableVibration: true,
-          showWhen: true,
-          styleInformation: BigTextStyleInformation(''),
-          visibility: NotificationVisibility.public,
-        );
+      'booking_channel',
+      'Booking Notifications',
+      channelDescription: 'Notifications for booking confirmations',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      showWhen: true,
+      styleInformation: BigTextStyleInformation(''),
+      visibility: NotificationVisibility.public,
+    );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -263,19 +261,19 @@ class NotificationService {
   }) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'booking_active_channel',
-          'Active Booking Notifications',
-          channelDescription:
-              'Notifications when booked parking time becomes active',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-          playSound: true,
-          enableVibration: true,
-          showWhen: true,
-          styleInformation: BigTextStyleInformation(''),
-          visibility: NotificationVisibility.public,
-        );
+      'booking_active_channel',
+      'Active Booking Notifications',
+      channelDescription:
+          'Notifications when booked parking time becomes active',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      showWhen: true,
+      styleInformation: BigTextStyleInformation(''),
+      visibility: NotificationVisibility.public,
+    );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -313,18 +311,18 @@ class NotificationService {
   }) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'parking_expiry_channel',
-          'Parking Expiry Notifications',
-          channelDescription: 'Notifications for parking time expiring soon',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-          playSound: true,
-          enableVibration: true,
-          showWhen: true,
-          styleInformation: BigTextStyleInformation(''),
-          visibility: NotificationVisibility.public,
-        );
+      'parking_expiry_channel',
+      'Parking Expiry Notifications',
+      channelDescription: 'Notifications for parking time expiring soon',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      showWhen: true,
+      styleInformation: BigTextStyleInformation(''),
+      visibility: NotificationVisibility.public,
+    );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
