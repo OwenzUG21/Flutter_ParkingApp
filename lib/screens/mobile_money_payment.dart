@@ -1,10 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../models/reservation_manager.dart';
 import '../themes/colors.dart';
 import '../services/notification_service.dart';
 import '../services/booking_service.dart';
 import '../services/preferences_service.dart';
+import '../services/translation_service.dart';
+
+// Phone number formatter for Uganda format: 0700 000 000
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Remove all non-digit characters
+    String digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+
+    // Limit to 10 digits
+    if (digitsOnly.length > 10) {
+      digitsOnly = digitsOnly.substring(0, 10);
+    }
+
+    // Format with spaces: 0700 000 000
+    String formatted = '';
+    for (int i = 0; i < digitsOnly.length; i++) {
+      if (i == 4 || i == 7) {
+        formatted += ' ';
+      }
+      formatted += digitsOnly[i];
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class MobileMoneyPaymentScreen extends StatefulWidget {
   final int totalAmount;
@@ -315,6 +348,11 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                       child: TextField(
                         controller: phoneController,
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          PhoneNumberFormatter(),
+                          LengthLimitingTextInputFormatter(
+                              12), // 10 digits + 2 spaces
+                        ],
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -383,12 +421,34 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (phoneController.text.isEmpty) {
+                          // Remove spaces and validate phone number
+                          String phoneNumber =
+                              phoneController.text.replaceAll(' ', '');
+
+                          if (phoneNumber.isEmpty) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
                                     'Please enter your phone number',
+                                  ),
+                                  backgroundColor: Colors.red.shade400,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
+                          if (phoneNumber.length != 10) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    'Phone number must be exactly 10 digits',
                                   ),
                                   backgroundColor: Colors.red.shade400,
                                   behavior: SnackBarBehavior.floating,
@@ -453,7 +513,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                               await _bookingService.markBookingAsPaid(
                                 widget.parkingRecordId!,
                                 'mobile_money',
-                                phoneController.text,
+                                phoneNumber, // Use cleaned phone number
                               );
 
                               print('✅ Booking marked as paid in database');
@@ -487,17 +547,14 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
 
                             // Save payment method phone number
                             if (_prefsService != null &&
-                                phoneController.text.isNotEmpty) {
+                                phoneNumber.isNotEmpty) {
                               if (selectedProvider == 'MTN') {
-                                await _prefsService!
-                                    .saveMtnNumber(phoneController.text);
-                                print(
-                                    '✅ Saved MTN number: ${phoneController.text}');
+                                await _prefsService!.saveMtnNumber(phoneNumber);
+                                print('✅ Saved MTN number: $phoneNumber');
                               } else if (selectedProvider == 'Airtel') {
                                 await _prefsService!
-                                    .saveAirtelNumber(phoneController.text);
-                                print(
-                                    '✅ Saved Airtel number: ${phoneController.text}');
+                                    .saveAirtelNumber(phoneNumber);
+                                print('✅ Saved Airtel number: $phoneNumber');
                               }
                             }
 
@@ -559,9 +616,9 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          'Pay Now',
-                          style: TextStyle(
+                        child: Text(
+                          'pay_now'.tr(context),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
@@ -579,7 +636,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           boxShadow: [
             BoxShadow(
               blurRadius: 20,
@@ -593,19 +650,23 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
             child: GNav(
               rippleColor: Colors.grey.withValues(alpha: 0.1),
               hoverColor: Colors.grey.withValues(alpha: 0.05),
-              gap: 6,
+              gap: 4, // Reduced from 6 to 4
               activeColor: Colors.white,
               iconSize: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 12), // Reduced from 16 to 12
               duration: const Duration(milliseconds: 400),
               tabBackgroundColor: AppColors.redButton,
-              color: Colors.grey.shade600,
-              textSize: 12,
-              tabs: const [
-                GButton(icon: Icons.home_rounded, text: 'Home'),
-                GButton(icon: Icons.groups_rounded, text: 'Community'),
-                GButton(icon: Icons.person_rounded, text: 'Profile'),
-                GButton(icon: Icons.settings_rounded, text: 'Settings'),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              textSize: 11, // Reduced from 12 to 11
+              tabs: [
+                GButton(icon: Icons.home_rounded, text: 'home'.tr(context)),
+                GButton(
+                    icon: Icons.groups_rounded, text: 'community'.tr(context)),
+                GButton(
+                    icon: Icons.person_rounded, text: 'profile'.tr(context)),
+                GButton(
+                    icon: Icons.settings_rounded, text: 'settings'.tr(context)),
               ],
               selectedIndex: selectedNavIndex,
               onTabChange: (index) {
@@ -634,6 +695,23 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
     Color textColor,
     bool isSelected,
   ) {
+    final theme = Theme.of(context);
+
+    // Improve text contrast for light mode
+    Color finalTextColor = textColor;
+    if (theme.brightness == Brightness.light) {
+      // For light mode, ensure better contrast
+      if (provider == 'MTN') {
+        finalTextColor = Colors.black87; // Better contrast on yellow
+      } else if (provider == 'Airtel') {
+        finalTextColor = Colors.white; // Keep white on red
+      } else if (provider == 'Africell') {
+        finalTextColor = Colors.white; // Keep white on blue
+      } else if (provider == 'M-Cash') {
+        finalTextColor = Colors.white; // Keep white on green
+      }
+    }
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -647,7 +725,11 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
           color: bgColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF111827) : Colors.transparent,
+            color: isSelected
+                ? (theme.brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF111827))
+                : Colors.transparent,
             width: 3,
           ),
           boxShadow: isSelected
@@ -670,9 +752,18 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
           child: Text(
             provider,
             style: TextStyle(
-              color: textColor,
+              color: finalTextColor,
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              shadows: theme.brightness == Brightness.light && provider == 'MTN'
+                  ? null // No shadow needed for black text on yellow
+                  : [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
             ),
           ),
         ),

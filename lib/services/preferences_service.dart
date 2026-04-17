@@ -25,6 +25,8 @@ class PreferencesService {
   static const String _keyMtnNumber = 'mtnPaymentNumber';
   static const String _keyAirtelNumber = 'airtelPaymentNumber';
   static const String _keyMastercardNumber = 'mastercardNumber';
+  static const String _keyCardHolderName = 'cardHolderName';
+  static const String _keyCardExpiry = 'cardExpiry';
 
   // ==================== USERNAME ====================
 
@@ -259,6 +261,46 @@ class PreferencesService {
       return _preferences!.getString(_keyMastercardNumber);
     } catch (e) {
       print('Error getting Mastercard number: $e');
+      return null;
+    }
+  }
+
+  /// Save Card Holder Name
+  Future<bool> saveCardHolderName(String name) async {
+    try {
+      return await _preferences!.setString(_keyCardHolderName, name);
+    } catch (e) {
+      print('Error saving card holder name: $e');
+      return false;
+    }
+  }
+
+  /// Get Card Holder Name
+  String? getCardHolderName() {
+    try {
+      return _preferences!.getString(_keyCardHolderName);
+    } catch (e) {
+      print('Error getting card holder name: $e');
+      return null;
+    }
+  }
+
+  /// Save Card Expiry
+  Future<bool> saveCardExpiry(String expiry) async {
+    try {
+      return await _preferences!.setString(_keyCardExpiry, expiry);
+    } catch (e) {
+      print('Error saving card expiry: $e');
+      return false;
+    }
+  }
+
+  /// Get Card Expiry
+  String? getCardExpiry() {
+    try {
+      return _preferences!.getString(_keyCardExpiry);
+    } catch (e) {
+      print('Error getting card expiry: $e');
       return null;
     }
   }

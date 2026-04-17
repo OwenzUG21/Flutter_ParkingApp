@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -61,13 +63,16 @@ dependencies:
   timezone: ^0.10.1
 
   # Intl for date formatting
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # Image Picker for profile and background images
   image_picker: ^1.0.7
 
   # Lottie animations
   lottie: ^3.1.0
+
+  # Smooth page indicator for onboarding
+  smooth_page_indicator: ^2.0.1
 
   # OneSignal for push notifications
   onesignal_flutter: ^5.2.7
@@ -78,6 +83,10 @@ dependencies:
 
   # HTTP for weather API calls
   http: ^1.2.0
+
+  # Flutter Map for OpenStreetMap integration
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:

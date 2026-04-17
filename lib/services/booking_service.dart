@@ -25,6 +25,8 @@ class BookingService {
     required double serviceFee,
     String vehicleType = 'car',
     String? notes,
+    String? parkingName,
+    String? parkingLocation,
   }) async {
     // Create parking record with future start time and duration
     final recordId = await _driftService.addParkingRecord(
@@ -38,6 +40,8 @@ class BookingService {
         amountCharged: Value(parkingRate),
         duration: Value(durationHours * 60), // Store duration in minutes
         notes: Value(notes),
+        parkingName: Value(parkingName),
+        parkingLocation: Value(parkingLocation),
       ),
     );
 

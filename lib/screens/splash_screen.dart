@@ -8,6 +8,8 @@ import '../services/notification_service.dart';
 import '../services/onesignal_service.dart';
 import '../services/onesignal_diagnostic.dart';
 import '../services/favorites_service.dart';
+import '../services/translation_service.dart';
+import '../utils/onboarding_helper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,13 +19,19 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _progressController;
-  String _statusMessage = 'Initializing...';
+  late AnimationController _typewriterController;
+  late Animation<double> _fadeAnimation;
+  String _statusMessage = '';
+  String _displayedText = '';
+  final String _fullText = 'ParkFlexAPP';
+  final int _typingSpeed = 100; // milliseconds per character
 
   @override
   void initState() {
     super.initState();
+    _statusMessage = 'loading'.tr(context);
 
     // Initialize progress animation controller
     _progressController = AnimationController(
@@ -31,13 +39,47 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 300),
     );
 
+    // Initialize typewriter animation controller
+    final totalDuration = _fullText.length * _typingSpeed;
+    _typewriterController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalDuration),
+    );
+
+    // Create fade-in animation
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _typewriterController,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    // Start typewriter animation
+    _startTypewriterAnimation();
+
     _startApp();
   }
 
   @override
   void dispose() {
     _progressController.dispose();
+    _typewriterController.dispose();
     super.dispose();
+  }
+
+  void _startTypewriterAnimation() {
+    _typewriterController.addListener(() {
+      if (!mounted) return;
+
+      final progress = _typewriterController.value;
+      final currentLength = (_fullText.length * progress).floor();
+
+      setState(() {
+        _displayedText = _fullText.substring(0, currentLength);
+      });
+    });
+
+    _typewriterController.forward();
   }
 
   void _updateProgress(double progress, String message) {
@@ -54,49 +96,71 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _startApp() async {
     try {
-      // Step 1: Initialize Firebase (14%)
-      _updateProgress(0.14, 'Connecting to Firebase...');
+      // Show "Loading..." during all initialization
+      _updateProgress(0.1, 'loading'.tr(context));
+
+      // Initialize Firebase
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
       }
 
-      // Step 2: Initialize databases (28%)
-      _updateProgress(0.28, 'Setting up databases...');
+      // Initialize databases
+      _updateProgress(0.3, 'loading'.tr(context));
       await DatabaseManager().initialize();
 
-      // Step 3: Initialize notification service (42%)
-      _updateProgress(0.42, 'Configuring notifications...');
+      // Initialize notification service
+      _updateProgress(0.5, 'loading'.tr(context));
       await NotificationService().initialize();
 
-      // Step 4: Initialize OneSignal (56%)
-      _updateProgress(0.56, 'Initializing push notifications...');
+      // Initialize OneSignal
+      _updateProgress(0.6, 'loading'.tr(context));
       await OneSignalService().initialize();
 
-      // Step 5: Run diagnostics (70%) - removed delay, just run it
-      _updateProgress(0.70, 'Running diagnostics...');
+      // Run diagnostics
+      _updateProgress(0.7, 'loading'.tr(context));
       await OneSignalDiagnostic.runDiagnostics();
 
-      // Step 6: Initialize theme service (85%)
-      _updateProgress(0.85, 'Loading theme...');
+      // Initialize theme service
+      _updateProgress(0.85, 'loading'.tr(context));
       await ThemeService().initialize();
 
-      // Step 7: Initialize favorites service (95%)
-      _updateProgress(0.95, 'Loading preferences...');
+      // Initialize favorites service
+      _updateProgress(0.95, 'loading'.tr(context));
       await FavoritesService().initialize();
 
-      // Step 8: Complete (100%)
+      // Complete - show "Ready!"
       _updateProgress(1.0, 'Ready!');
-      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Wait for typewriter animation to complete
+      await _typewriterController.forward();
+
+      // Wait 1 second after animation completes
+      await Future.delayed(const Duration(seconds: 1));
     } catch (e) {
       debugPrint('Startup error: $e');
-      _updateProgress(1.0, 'Error occurred, continuing...');
-      await Future.delayed(const Duration(milliseconds: 500));
+      _updateProgress(1.0, 'Ready!');
+
+      // Wait for typewriter animation to complete
+      await _typewriterController.forward();
+
+      // Wait 1 second after animation completes
+      await Future.delayed(const Duration(seconds: 1));
     }
 
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/auth');
+
+    // Check onboarding status
+    final onboardingComplete = await OnboardingHelper.isOnboardingComplete();
+
+    if (!mounted) return;
+
+    if (!onboardingComplete) {
+      Navigator.pushReplacementNamed(context, '/onboarding');
+    } else {
+      Navigator.pushReplacementNamed(context, '/auth');
+    }
   }
 
   @override
@@ -122,15 +186,23 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  /// App Name Text
-                  const Text(
-                    "ParkFlexApp",
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
+                  /// App Name Text with Typewriter Animation
+                  AnimatedBuilder(
+                    animation: _fadeAnimation,
+                    builder: (context, child) {
+                      return Opacity(
+                        opacity: _fadeAnimation.value,
+                        child: Text(
+                          _displayedText,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

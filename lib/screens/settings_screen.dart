@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../themes/colors.dart';
+import '../services/language_service.dart';
+import '../services/translation_service.dart';
+import 'admin_support_bot.dart'; // Import smart support bot
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -35,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Settings',
+                        'settings'.tr(context),
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,
                           fontSize: 24,
@@ -136,12 +139,17 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     onTap: () {},
                   ),
-                  _buildSettingItem(
-                    icon: Icons.language_outlined,
-                    title: 'Language',
-                    subtitle: 'English',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/language');
+                  ListenableBuilder(
+                    listenable: LanguageService(),
+                    builder: (context, _) {
+                      return _buildSettingItem(
+                        icon: Icons.language_outlined,
+                        title: 'language'.tr(context),
+                        subtitle: LanguageService().languageName,
+                        onTap: () async {
+                          await Navigator.pushNamed(context, '/language');
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: 24),
@@ -156,10 +164,15 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _buildSettingItem(
                     icon: Icons.question_answer_outlined,
-                    title: 'Ask a Question',
-                    subtitle: 'Get help from our support team',
+                    title: 'Smart Support Chat',
+                    subtitle: 'Get instant help with step-by-step guidance',
                     onTap: () {
-                      _showAskQuestionDialog(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SupportBotWidget(),
+                        ),
+                      );
                     },
                   ),
                   _buildSettingItem(
@@ -427,95 +440,6 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  void _showAskQuestionDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Ask a Question',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              style: TextStyle(color: theme.colorScheme.onSurface),
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Type your question here...',
-                hintStyle: TextStyle(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-                filled: true,
-                fillColor: theme.brightness == Brightness.dark
-                    ? theme.colorScheme.surfaceContainerHighest
-                    : Colors.grey.shade50,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.brightness == Brightness.dark
-                        ? theme.colorScheme.outline
-                        : Colors.grey.shade300,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.brightness == Brightness.dark
-                        ? theme.colorScheme.outline
-                        : Colors.grey.shade300,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.primary,
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Question submitted! We\'ll respond soon.'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.redButton,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Submit', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 }

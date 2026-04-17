@@ -13,11 +13,13 @@ import '../services/weather_service.dart';
 import '../services/favorites_service.dart';
 import '../services/preferences_service.dart';
 import '../services/print_service.dart';
+import '../services/translation_service.dart';
 import '../widgets/notification_badge.dart';
 import 'profile_screen.dart';
 import 'community_screen.dart';
 import 'settings_screen.dart';
 import 'weather_screen.dart';
+import 'bookingscreen.dart';
 
 void main() {
   runApp(const DashboardApp());
@@ -187,11 +189,26 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
     final currentOffset = _scrollController.offset;
+    final minScrollExtent = _scrollController.position.minScrollExtent;
+
+    // Always show search bar when at the top or very close to it
+    if (currentOffset <= minScrollExtent + 5) {
+      if (!_showSearchBar) {
+        setState(() {
+          _showSearchBar = true;
+        });
+      }
+      _lastScrollOffset = currentOffset;
+      return;
+    }
+
     final delta = currentOffset - _lastScrollOffset;
 
-    // Only trigger if scrolled more than 10 pixels
-    if (delta.abs() > 10) {
+    // Only trigger if scrolled more than 5 pixels
+    if (delta.abs() > 5) {
       if (delta > 0 && _showSearchBar) {
         // Scrolling down - hide search bar and unfocus search field
         setState(() {
@@ -205,13 +222,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         });
       }
       _lastScrollOffset = currentOffset;
-    }
-
-    // Always show search bar when at the top
-    if (currentOffset <= 0 && !_showSearchBar) {
-      setState(() {
-        _showSearchBar = true;
-      });
     }
   }
 
@@ -285,20 +295,25 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: GNav(
                 rippleColor: Colors.grey.withValues(alpha: 0.1),
                 hoverColor: Colors.grey.withValues(alpha: 0.05),
-                gap: 6,
+                gap: 4, // Reduced from 6 to 4
                 activeColor: Colors.white,
                 iconSize: 24,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 12), // Reduced from 16 to 12
                 duration: const Duration(milliseconds: 400),
                 tabBackgroundColor: AppColors.redButton,
                 color: Colors.grey.shade600,
-                textSize: 12,
-                tabs: const [
-                  GButton(icon: Icons.home_rounded, text: 'Home'),
-                  GButton(icon: Icons.groups_rounded, text: 'Community'),
-                  GButton(icon: Icons.person_rounded, text: 'Profile'),
-                  GButton(icon: Icons.settings_rounded, text: 'Settings'),
+                textSize: 11, // Reduced from 12 to 11
+                tabs: [
+                  GButton(icon: Icons.home_rounded, text: 'home'.tr(context)),
+                  GButton(
+                      icon: Icons.groups_rounded,
+                      text: 'community'.tr(context)),
+                  GButton(
+                      icon: Icons.person_rounded, text: 'profile'.tr(context)),
+                  GButton(
+                      icon: Icons.settings_rounded,
+                      text: 'settings'.tr(context)),
                 ],
                 selectedIndex: selectedNavIndex,
                 onTabChange: (index) {
@@ -398,7 +413,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 children: [
                   _buildDrawerItem(
                     icon: Icons.home_rounded,
-                    title: 'Home',
+                    title: 'home'.tr(context),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() => selectedNavIndex = 0);
@@ -406,7 +421,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   _buildDrawerItem(
                     icon: Icons.local_parking_rounded,
-                    title: 'Parking',
+                    title: 'parking'.tr(context),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() {
@@ -417,7 +432,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   _buildDrawerItem(
                     icon: Icons.history_rounded,
-                    title: 'Reserves',
+                    title: 'reserves'.tr(context),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() {
@@ -428,7 +443,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   _buildDrawerItem(
                     icon: Icons.payment_rounded,
-                    title: 'Payment',
+                    title: 'payment'.tr(context),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() {
@@ -439,7 +454,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   _buildDrawerItem(
                     icon: Icons.settings_rounded,
-                    title: 'Settings',
+                    title: 'settings'.tr(context),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() => selectedNavIndex = 3);
@@ -467,7 +482,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            'Dark Mode',
+                            'dark_mode'.tr(context),
                             style: TextStyle(
                               color: theme.brightness == Brightness.dark
                                   ? Colors.white.withValues(alpha: 0.95)
@@ -498,7 +513,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   const SizedBox(height: 16),
                   _buildDrawerItem(
                     icon: Icons.logout_rounded,
-                    title: 'Logout',
+                    title: 'logout'.tr(context),
                     onTap: () async {
                       Navigator.pop(context);
                       // Sign out from Firebase
@@ -615,10 +630,10 @@ class _DashboardScreenState extends State<DashboardScreen>
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
-            tabs: const [
-              Tab(text: 'Parking'),
-              Tab(text: 'Reserve'),
-              Tab(text: 'Payment'),
+            tabs: [
+              Tab(text: 'parking'.tr(context)),
+              Tab(text: 'reserve'.tr(context)),
+              Tab(text: 'payment'.tr(context)),
             ],
           ),
         ),
@@ -679,7 +694,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Current Location',
+                                      'current_location'.tr(context),
                                       style: TextStyle(
                                         color:
                                             theme.brightness == Brightness.dark
@@ -798,7 +813,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           },
                           style: TextStyle(color: theme.colorScheme.onSurface),
                           decoration: InputDecoration(
-                            hintText: 'Search parking locations...',
+                            hintText: 'search_parking_locations'.tr(context),
                             border: InputBorder.none,
                             hintStyle: TextStyle(
                               color: theme.brightness == Brightness.dark
@@ -827,6 +842,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                       setState(() {
                                         _searchController.clear();
                                         _searchQuery = '';
+                                        _showFavoritesOnly =
+                                            false; // Reset favorites filter
                                       });
                                     },
                                   )
@@ -840,8 +857,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       ),
 
-                      // Show filter chips only when search is focused
-                      if (_isSearchFocused) ...[
+                      // Show filter chips only when typing in search
+                      if (_searchQuery.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -861,7 +878,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                           : null,
                                     ),
                                     const SizedBox(width: 6),
-                                    const Text('Favorites'),
+                                    Text('favorites'.tr(context)),
                                   ],
                                 ),
                                 selected: _showFavoritesOnly,
@@ -905,7 +922,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No parking locations found',
+                                'no_parking_found'.tr(context),
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey.shade600,
@@ -914,7 +931,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Try a different search term',
+                                'try_different_search'.tr(context),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey.shade500,
@@ -925,6 +942,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         )
                       : GridView.builder(
                           controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
@@ -980,13 +998,13 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     if (availabilityPercent > 0.5) {
       availabilityColor = Colors.green;
-      availabilityText = 'Available';
+      availabilityText = 'available'.tr(context);
     } else if (availabilityPercent > 0.2) {
       availabilityColor = Colors.orange;
-      availabilityText = 'Limited';
+      availabilityText = 'limited'.tr(context);
     } else {
       availabilityColor = Colors.red;
-      availabilityText = 'Almost Full';
+      availabilityText = 'almost_full'.tr(context);
     }
 
     return GestureDetector(
@@ -1200,6 +1218,35 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
     );
   }
+
+  // Helper methods to get coordinates for different locations
+  double _getLatitudeForLocation(String location) {
+    // Sample coordinates for Uganda locations
+    if (location.toLowerCase().contains('kololo')) {
+      return 0.3476; // Kololo, Kampala
+    } else if (location.toLowerCase().contains('kampala')) {
+      return 0.3476; // Kampala city center
+    } else if (location.toLowerCase().contains('jinja')) {
+      return 0.4314; // Jinja
+    } else if (location.toLowerCase().contains('entebbe')) {
+      return 0.0564; // Entebbe
+    }
+    return 0.3476; // Default to Kampala
+  }
+
+  double _getLongitudeForLocation(String location) {
+    // Sample coordinates for Uganda locations
+    if (location.toLowerCase().contains('kololo')) {
+      return 32.6052; // Kololo, Kampala
+    } else if (location.toLowerCase().contains('kampala')) {
+      return 32.6052; // Kampala city center
+    } else if (location.toLowerCase().contains('jinja')) {
+      return 33.2042; // Jinja
+    } else if (location.toLowerCase().contains('entebbe')) {
+      return 32.4432; // Entebbe
+    }
+    return 32.6052; // Default to Kampala
+  }
 }
 
 class ParkingLot {
@@ -1261,6 +1308,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   List<ParkingRecord> _upcomingBookings = [];
   List<ParkingRecord> _completedBookings = [];
   bool _isLoading = true;
+  Timer? _remainingTimeTimer;
 
   @override
   bool get wantKeepAlive => true;
@@ -1269,10 +1317,19 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   void initState() {
     super.initState();
     _loadBookings();
+    // Update remaining time every 30 seconds for better UX when time is running low
+    _remainingTimeTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted && _activeBookings.isNotEmpty) {
+        setState(() {
+          // This will trigger a rebuild to update remaining time displays
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _remainingTimeTimer?.cancel();
     super.dispose();
   }
 
@@ -1313,8 +1370,38 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   List<ParkingRecord> get _upcomingReservations => _upcomingBookings;
   List<ParkingRecord> get _historyReservations => _completedBookings;
 
+  // Helper method to get parking name from booking record
+  String _getParkingName(ParkingRecord booking) {
+    // First try the dedicated parkingName field (new approach)
+    if (booking.parkingName != null && booking.parkingName!.isNotEmpty) {
+      return booking.parkingName!;
+    }
+
+    // Fallback: extract from notes field (legacy approach)
+    return _extractParkingName(booking.notes);
+  }
+
+  // Helper method to extract parking name from notes field (legacy support)
+  String _extractParkingName(String? notes) {
+    if (notes == null || notes.isEmpty) {
+      return 'Unknown Parking Location';
+    }
+
+    // Extract parking name from "Booking from {parkingName}" format
+    final regex = RegExp(r'Booking from (.+)');
+    final match = regex.firstMatch(notes);
+
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!.trim();
+    }
+
+    // Fallback: if notes don't match expected format, return a default
+    return 'Parking Location';
+  }
+
   // Helper method to convert ParkingRecord to Map for UI compatibility
-  Map<String, dynamic> _bookingToMap(ParkingRecord booking) {
+  Map<String, dynamic> _bookingToMap(
+      ParkingRecord booking, BuildContext context) {
     final isUpcoming = booking.entryTime.isAfter(DateTime.now());
     final dbPaymentStatus = booking.paymentStatus ?? 'pending';
 
@@ -1324,38 +1411,47 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
     if (booking.exitTime != null) {
       // Session has ended - in History
       if (dbPaymentStatus == 'cancelled') {
-        status = 'Cancelled';
-        displayPaymentStatus = 'cancelled';
+        status = 'cancelled'.tr(context);
+        displayPaymentStatus = 'cancelled'.tr(context);
       } else if (dbPaymentStatus == 'unpaid') {
-        status = 'Completed';
-        displayPaymentStatus = 'unpaid';
+        status = 'completed'.tr(context);
+        displayPaymentStatus = 'unpaid'.tr(context);
       } else if (dbPaymentStatus == 'completed' || dbPaymentStatus == 'paid') {
-        status = 'Completed';
-        displayPaymentStatus = 'paid';
+        status = 'completed'.tr(context);
+        displayPaymentStatus = 'paid'.tr(context);
       } else {
-        status = 'Completed';
+        status = 'completed'.tr(context);
         displayPaymentStatus = dbPaymentStatus;
       }
     } else if (isUpcoming) {
       // Session hasn't started yet - in Upcoming
-      status = 'Upcoming';
-      displayPaymentStatus =
-          dbPaymentStatus; // Keep original: 'pending' or 'paid'
+      status = 'upcoming'.tr(context);
+      displayPaymentStatus = dbPaymentStatus == 'pending'
+          ? 'pending'.tr(context)
+          : (dbPaymentStatus == 'paid' ? 'paid'.tr(context) : dbPaymentStatus);
     } else {
       // Session is running - in Active
-      status = 'Active';
-      displayPaymentStatus =
-          dbPaymentStatus; // Keep original: 'pending' or 'paid'
+      status = 'active'.tr(context);
+      displayPaymentStatus = dbPaymentStatus == 'pending'
+          ? 'pending'.tr(context)
+          : (dbPaymentStatus == 'paid' ? 'paid'.tr(context) : dbPaymentStatus);
     }
 
     final duration = booking.duration != null
         ? '${(booking.duration! / 60).ceil()} Hr'
         : '2 Hr';
 
+    // Get actual parking name from database
+    final parkingName = _getParkingName(booking);
+
+    // Debug logging
+    print(
+        '📋 _bookingToMap - Original DB status: $dbPaymentStatus, Translated: $displayPaymentStatus');
+
     return {
       'reservationId': 'RES-${booking.id}',
       'parkingRecordId': booking.id,
-      'location': 'Parking Location', // You can enhance this
+      'location': parkingName,
       'spot': booking.plateNumber,
       'address': 'Slot ${booking.parkingSlot}',
       'date':
@@ -1367,7 +1463,10 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       'duration': duration,
       'cost': 'UGX ${(booking.amountCharged ?? 0).toStringAsFixed(0)}',
       'status': status,
-      'paymentStatus': displayPaymentStatus,
+      'paymentStatus':
+          dbPaymentStatus, // Store original DB value, not translated
+      'displayPaymentStatus':
+          displayPaymentStatus, // Store translated value separately
       'imagePath': 'assets/images/bd.jpg',
       'parkingRate': booking.amountCharged ?? 0.0,
       'serviceFee': (booking.amountCharged ?? 0.0) * 0.15,
@@ -1390,11 +1489,14 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
             color: theme.colorScheme.surface,
             child: Row(
               children: [
-                _buildPillTab('Active Sessions', 0, _activeReservations.length),
+                _buildPillTab('active_sessions'.tr(context), 0,
+                    _activeReservations.length),
                 const SizedBox(width: 8),
-                _buildPillTab('Upcoming', 1, _upcomingReservations.length),
+                _buildPillTab(
+                    'upcoming'.tr(context), 1, _upcomingReservations.length),
                 const SizedBox(width: 8),
-                _buildPillTab('History', 2, _historyReservations.length),
+                _buildPillTab(
+                    'history'.tr(context), 2, _historyReservations.length),
               ],
             ),
           ),
@@ -1408,7 +1510,8 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   Widget _buildPillTab(String label, int index, int count) {
     final theme = Theme.of(context);
     final isSelected = _selectedSubTab == index;
-    final displayLabel = index == 0 ? label.replaceAll(' Sessions', '') : label;
+    // For the first tab (Active Sessions), show just "Active" for space
+    final displayLabel = index == 0 ? 'active'.tr(context) : label;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedSubTab = index),
@@ -1469,7 +1572,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       itemCount: _activeReservations.length,
       itemBuilder: (context, index) {
         return _buildModernReservationCard(
-          _bookingToMap(_activeReservations[index]),
+          _bookingToMap(_activeReservations[index], context),
         );
       },
     );
@@ -1493,7 +1596,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       itemCount: _upcomingReservations.length,
       itemBuilder: (context, index) {
         return _buildModernReservationCard(
-          _bookingToMap(_upcomingReservations[index]),
+          _bookingToMap(_upcomingReservations[index], context),
         );
       },
     );
@@ -1517,7 +1620,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
       itemCount: _historyReservations.length,
       itemBuilder: (context, index) {
         return _buildHistoryCard(
-          _bookingToMap(_historyReservations[index]),
+          _bookingToMap(_historyReservations[index], context),
           index,
         );
       },
@@ -1532,13 +1635,13 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
     // Determine status based on payment status
     String status;
     if (paymentStatus == 'cancelled') {
-      status = 'Cancelled';
+      status = 'cancelled'.tr(context);
     } else if (paymentStatus == 'unpaid') {
-      status = 'Unpaid';
+      status = 'unpaid'.tr(context);
     } else if (paymentStatus == 'completed' || paymentStatus == 'paid') {
-      status = 'Completed';
+      status = 'completed'.tr(context);
     } else {
-      status = reservation['status'] ?? 'Completed';
+      status = reservation['status'] ?? 'completed'.tr(context);
     }
 
     return Container(
@@ -1826,30 +1929,43 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
   Widget _buildModernReservationCard(Map<String, dynamic> reservation) {
     final theme = Theme.of(context);
     final status = reservation['status'] ?? 'Active';
-    final paymentStatus = reservation['paymentStatus'] ?? 'Payment pending';
+
+    // Calculate remaining time for active bookings
+    Duration? remainingTime;
+    bool showExtendButton = false;
+
+    if (status.toLowerCase() == 'active') {
+      final bookingId = reservation['parkingRecordId'];
+      final activeBooking = _activeReservations.firstWhere(
+        (booking) => booking.id == bookingId,
+        orElse: () => _activeReservations.first,
+      );
+
+      // Calculate end time based on entry time and duration
+      final entryTime = activeBooking.entryTime;
+      final durationMinutes = activeBooking.duration ?? 120; // Default 2 hours
+      final endTime = entryTime.add(Duration(minutes: durationMinutes));
+      final now = DateTime.now();
+
+      if (endTime.isAfter(now)) {
+        remainingTime = endTime.difference(now);
+        // Show extend button if 10 minutes or less remain
+        showExtendButton = remainingTime.inMinutes <= 10;
+      }
+    }
+    final paymentStatus =
+        reservation['paymentStatus'] ?? 'pending'; // Original DB value
+    final displayPaymentStatus = reservation['displayPaymentStatus'] ??
+        'pending'.tr(context); // Translated value
     final reservationId = reservation['reservationId'] ?? 'Unknown';
 
     // Debug logging
     print(
-      '🎴 Building card for $reservationId - Status: $status, Payment: $paymentStatus',
+      '🎴 Building card for $reservationId - Status: $status, Payment: $paymentStatus (Display: $displayPaymentStatus)',
     );
+    print('🔍 Pay Now button will show: ${paymentStatus == 'pending'}');
 
-    // Normalize payment status display
-    String displayPaymentStatus;
-    if (paymentStatus == 'paid' ||
-        paymentStatus == 'Payment completed' ||
-        paymentStatus == 'Paid') {
-      displayPaymentStatus = 'Paid';
-    } else if (paymentStatus == 'pending' ||
-        paymentStatus == 'Payment pending') {
-      displayPaymentStatus = 'Pending';
-    } else if (paymentStatus == 'unpaid') {
-      displayPaymentStatus = 'Unpaid';
-    } else if (paymentStatus == 'cancelled') {
-      displayPaymentStatus = 'Cancelled';
-    } else {
-      displayPaymentStatus = paymentStatus;
-    }
+    // Use the already translated displayPaymentStatus from the reservation map
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1997,6 +2113,52 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                             ),
                           ),
                         ),
+                        // Show remaining time for active bookings
+                        if (status.toLowerCase() == 'active' &&
+                            remainingTime != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: showExtendButton
+                                  ? Colors.red.shade50
+                                  : Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: showExtendButton
+                                    ? Colors.red.shade200
+                                    : Colors.blue.shade200,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  size: 12,
+                                  color: showExtendButton
+                                      ? Colors.red.shade700
+                                      : Colors.blue.shade700,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${remainingTime.inHours}h ${remainingTime.inMinutes % 60}m left',
+                                  style: TextStyle(
+                                    color: showExtendButton
+                                        ? Colors.red.shade700
+                                        : Colors.blue.shade700,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -2004,10 +2166,9 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                paymentStatus.toLowerCase().contains('pending')
-                                    ? Colors.orange.shade50
-                                    : Colors.green.shade50,
+                            color: (paymentStatus == 'pending')
+                                ? Colors.orange.shade50
+                                : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -2088,7 +2249,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                       ),
                       Expanded(
                         child: _buildDetailItem(
-                          'Payment',
+                          'payment'.tr(context),
                           displayPaymentStatus,
                         ),
                       ),
@@ -2168,7 +2329,7 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (paymentStatus.toLowerCase().contains('pending'))
+                    if (paymentStatus == 'pending')
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
@@ -2238,111 +2399,161 @@ class _ReservationsTabContentState extends State<ReservationsTabContent>
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text(
-                            'Pay Now',
-                            style: TextStyle(fontSize: 13),
+                          child: Text(
+                            'pay_now'.tr(context),
+                            style: const TextStyle(fontSize: 13),
                           ),
                         ),
                       ),
-                    if (paymentStatus.toLowerCase().contains('pending'))
-                      const SizedBox(width: 8),
+                    if (paymentStatus == 'pending') const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          // Show confirmation dialog
-                          showDialog(
-                            context: context,
-                            builder: (dialogContext) => AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              title: const Text('End Session'),
-                              content: const Text(
-                                'Are you sure you want to end this parking session?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(dialogContext),
-                                  child: const Text('Cancel'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    // End the session by canceling the booking
-                                    try {
-                                      final bookingId =
-                                          reservation['parkingRecordId'];
-                                      await _bookingService.cancelBooking(
-                                        bookingId,
-                                      );
-                                      Navigator.pop(dialogContext);
-                                      // Refresh the UI
-                                      await _loadBookings();
+                          if (showExtendButton) {
+                            // Navigate to booking screen with pre-filled data for extension
+                            final bookingId = reservation['parkingRecordId'];
+                            final activeBooking =
+                                _activeReservations.firstWhere(
+                              (booking) => booking.id == bookingId,
+                              orElse: () => _activeReservations.first,
+                            );
 
-                                      // Show success message
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: const Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.check_circle,
-                                                  color: Colors.white,
-                                                ),
-                                                SizedBox(width: 12),
-                                                Text(
-                                                  'Session ended successfully',
-                                                ),
-                                              ],
-                                            ),
-                                            backgroundColor:
-                                                Colors.green.shade600,
-                                            behavior: SnackBarBehavior.floating,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      Navigator.pop(dialogContext);
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Error ending session: $e',
-                                            ),
-                                            backgroundColor:
-                                                Colors.red.shade600,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red.shade600,
-                                  ),
-                                  child: const Text('End Session'),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookingScreen(
+                                  parkingName: reservation['location'] ??
+                                      'Unknown Location',
+                                  parkingLocation: reservation['address'] ??
+                                      'Unknown Address',
+                                  spacesLeft: 10, // Default value
+                                  pricePerHour:
+                                      (activeBooking.amountCharged?.toInt() ??
+                                              5000) ~/
+                                          ((activeBooking.duration ?? 120) / 60)
+                                              .ceil(), // Calculate hourly rate
+                                  slotNumber: int.tryParse(
+                                      activeBooking.parkingSlot ?? '1'),
+                                  imagePath: reservation['imagePath'],
                                 ),
-                              ],
-                            ),
-                          );
+                              ),
+                            ).then((_) {
+                              // Refresh bookings when returning from booking screen
+                              _loadBookings();
+                            });
+                          } else {
+                            // Show confirmation dialog for ending session
+                            showDialog(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                title: const Text('End Session'),
+                                content: const Text(
+                                  'Are you sure you want to end this parking session?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      // End the session by canceling the booking
+                                      try {
+                                        final bookingId =
+                                            reservation['parkingRecordId'];
+                                        await _bookingService.cancelBooking(
+                                          bookingId,
+                                        );
+                                        Navigator.pop(dialogContext);
+                                        // Refresh the UI
+                                        await _loadBookings();
+
+                                        // Show success message
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: const Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.check_circle,
+                                                    color: Colors.white,
+                                                  ),
+                                                  SizedBox(width: 12),
+                                                  Text(
+                                                    'Session ended successfully',
+                                                  ),
+                                                ],
+                                              ),
+                                              backgroundColor:
+                                                  Colors.green.shade600,
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        Navigator.pop(dialogContext);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Error ending session: $e',
+                                              ),
+                                              backgroundColor:
+                                                  Colors.red.shade600,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red.shade600,
+                                    ),
+                                    child: const Text('End Session'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade600,
+                          backgroundColor: showExtendButton
+                              ? Colors.orange.shade600
+                              : Colors.red.shade600,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text(
-                          'End Session',
-                          style: TextStyle(fontSize: 13),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (showExtendButton) ...[
+                              const Icon(Icons.access_time, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Extend (${remainingTime?.inMinutes ?? 0}m left)',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ] else
+                              const Text(
+                                'End Session',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -2584,7 +2795,7 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                '$availableCount Available',
+                                '$availableCount ${'available_slots'.tr(context)}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -2621,6 +2832,61 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            // Direction button
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/map',
+                                  arguments: {
+                                    'parkingName': widget.lot.name,
+                                    'parkingLocation': widget.lot.location,
+                                    'latitude': _getLatitudeForLocation(
+                                        widget.lot.location),
+                                    'longitude': _getLongitudeForLocation(
+                                        widget.lot.location),
+                                  },
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.directions,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Direction',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -2646,9 +2912,9 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                       Expanded(
                         child: _buildInfoCard(
                           icon: Icons.attach_money,
-                          title: 'Price',
+                          title: 'price'.tr(context),
                           value: 'UGX ${widget.lot.pricePerHour}',
-                          subtitle: 'per hour',
+                          subtitle: 'per_hour'.tr(context),
                           color: Colors.green,
                         ),
                       ),
@@ -2656,9 +2922,9 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                       Expanded(
                         child: _buildInfoCard(
                           icon: Icons.local_parking,
-                          title: 'Capacity',
+                          title: 'capacity'.tr(context),
                           value: '$totalCount',
-                          subtitle: 'total slots',
+                          subtitle: 'total_slots'.tr(context),
                           color: Colors.blue,
                         ),
                       ),
@@ -2666,9 +2932,9 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                       Expanded(
                         child: _buildInfoCard(
                           icon: Icons.pie_chart,
-                          title: 'Occupancy',
+                          title: 'occupancy'.tr(context),
                           value: '$occupancyRate%',
-                          subtitle: 'occupied',
+                          subtitle: 'occupied_subtitle'.tr(context),
                           color: Colors.orange,
                         ),
                       ),
@@ -2697,7 +2963,7 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Select Your Parking Slot',
+                        'select_parking_slot'.tr(context),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -2706,7 +2972,7 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Tap on an available slot to proceed with booking',
+                        'tap_available_slot'.tr(context),
                         style: TextStyle(
                           fontSize: 14,
                           color: theme.colorScheme.onSurface.withValues(
@@ -2717,25 +2983,33 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
                       const SizedBox(height: 20),
 
                       // Legend
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildLegendItem(
-                            color: const Color(0xFF5B6B9E),
-                            label: 'Available',
-                            icon: Icons.check_circle_outline,
-                          ),
-                          _buildLegendItem(
-                            color: Colors.green,
-                            label: 'Selected',
-                            icon: Icons.check_circle,
-                          ),
-                          _buildLegendItem(
-                            color: Colors.grey.shade300,
-                            label: 'Occupied',
-                            icon: Icons.cancel_outlined,
-                          ),
-                        ],
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _buildLegendItem(
+                                color: const Color(0xFF5B6B9E),
+                                label: 'available'.tr(context),
+                                icon: Icons.check_circle_outline,
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildLegendItem(
+                                color: Colors.green,
+                                label: 'selected'.tr(context),
+                                icon: Icons.check_circle,
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildLegendItem(
+                                color: Colors.grey.shade300,
+                                label: 'occupied'.tr(context),
+                                icon: Icons.cancel_outlined,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 24),
@@ -2983,18 +3257,21 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
     return Builder(
       builder: (context) {
         final theme = Theme.of(context);
-        return Row(
+        return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: color, size: 18),
-            const SizedBox(width: 6),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10, // Further reduced from 11 to 10
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              textAlign: TextAlign.center,
             ),
           ],
         );
@@ -3098,6 +3375,35 @@ class _ParkingLotDetailsScreenState extends State<ParkingLotDetailsScreen> {
         );
       },
     );
+  }
+
+  // Helper methods to get coordinates for different locations
+  double _getLatitudeForLocation(String location) {
+    // Sample coordinates for Uganda locations
+    if (location.toLowerCase().contains('kololo')) {
+      return 0.3476; // Kololo, Kampala
+    } else if (location.toLowerCase().contains('kampala')) {
+      return 0.3476; // Kampala city center
+    } else if (location.toLowerCase().contains('jinja')) {
+      return 0.4314; // Jinja
+    } else if (location.toLowerCase().contains('entebbe')) {
+      return 0.0564; // Entebbe
+    }
+    return 0.3476; // Default to Kampala
+  }
+
+  double _getLongitudeForLocation(String location) {
+    // Sample coordinates for Uganda locations
+    if (location.toLowerCase().contains('kololo')) {
+      return 32.6052; // Kololo, Kampala
+    } else if (location.toLowerCase().contains('kampala')) {
+      return 32.6052; // Kampala city center
+    } else if (location.toLowerCase().contains('jinja')) {
+      return 33.2042; // Jinja
+    } else if (location.toLowerCase().contains('entebbe')) {
+      return 32.4432; // Entebbe
+    }
+    return 32.6052; // Default to Kampala
   }
 }
 
@@ -3407,6 +3713,8 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     final mtnNumber = _prefsService?.getMtnNumber();
     final airtelNumber = _prefsService?.getAirtelNumber();
     final mastercardNumber = _prefsService?.getMastercardNumber();
+    final cardHolderName = _prefsService?.getCardHolderName();
+    final cardExpiry = _prefsService?.getCardExpiry();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -3460,28 +3768,28 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                   imagePath: 'assets/lines/mtn.png',
                   buttonText: 'Add',
                   phoneNumber: mtnNumber,
+                  simCardText: 'MTN simcard',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildPaymentMethodCard(
-                  title: 'Airtel Money',
+                  title: 'Airtel Mobile Money',
                   subtitle: airtelNumber ?? 'Add during payment',
                   imagePath: 'assets/lines/aritel.png',
                   buttonText: 'Add',
                   phoneNumber: airtelNumber,
+                  simCardText: 'Airtel simcard',
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _buildPaymentMethodCard(
-            title: 'Visa or Mastercard',
-            subtitle: mastercardNumber ?? 'Add a card during payment',
-            imagePath: null,
-            buttonText: 'Manage',
-            icon: Icons.credit_card,
-            phoneNumber: mastercardNumber,
+          _buildCreditCardDisplay(
+            cardNumber: mastercardNumber,
+            cardHolderName: cardHolderName,
+            cardExpiry: cardExpiry,
+            theme: theme,
           ),
         ],
       ),
@@ -3495,6 +3803,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     IconData? icon,
     required String buttonText,
     String? phoneNumber,
+    String? simCardText,
   }) {
     final theme = Theme.of(context);
     final bool hasPaymentMethod = phoneNumber != null && phoneNumber.isNotEmpty;
@@ -3502,7 +3811,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     // If payment method is saved and has image, show full background design
     if (hasPaymentMethod && imagePath != null) {
       return Container(
-        height: 180,
+        height: 210, // Increased from 200 to 210 to prevent overflow
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           image: DecorationImage(
@@ -3534,61 +3843,69 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black45,
-                      blurRadius: 4,
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(
+                      alpha:
+                          0.2), // Changed from black to white with transparency
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    phoneNumber,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black45,
-                          blurRadius: 4,
-                        ),
-                      ],
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(
+                          alpha:
+                              0.2), // Changed from black to white with transparency
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      phoneNumber,
+                      style: const TextStyle(
+                        fontSize:
+                            14, // Reduced from 16 to 14 to fit all 10 digits
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing:
+                            0.3, // Reduced from 0.5 to 0.3 for tighter spacing
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 2,
+                  if (simCardText != null) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        buttonText,
+                        simCardText,
                         style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ],
@@ -3808,14 +4125,21 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
     final cost = 'UGX ${(payment.amountCharged ?? 0).toStringAsFixed(0)}';
 
     Color providerColor = Colors.grey;
+    Color providerTextColor = Colors.white;
+
     if (provider.toLowerCase().contains('mtn')) {
       providerColor = Colors.yellow.shade700;
+      providerTextColor =
+          theme.brightness == Brightness.light ? Colors.black87 : Colors.black;
     } else if (provider.toLowerCase().contains('airtel')) {
       providerColor = Colors.red.shade600;
+      providerTextColor = Colors.white;
     } else if (provider == 'Africell') {
       providerColor = Colors.blue.shade700;
+      providerTextColor = Colors.white;
     } else if (provider == 'M-Cash') {
       providerColor = Colors.green.shade700;
+      providerTextColor = Colors.white;
     }
 
     return Container(
@@ -3910,7 +4234,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: providerColor.withValues(alpha: 0.1),
+                    color: providerColor,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: providerColor.withValues(alpha: 0.3),
@@ -3919,7 +4243,7 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
                   child: Text(
                     provider,
                     style: TextStyle(
-                      color: providerColor,
+                      color: providerTextColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
@@ -3973,6 +4297,242 @@ class _PaymentTabContentState extends State<PaymentTabContent> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCreditCardDisplay({
+    String? cardNumber,
+    String? cardHolderName,
+    String? cardExpiry,
+    required ThemeData theme,
+  }) {
+    final bool hasCard = cardNumber != null && cardNumber.isNotEmpty;
+
+    if (!hasCard) {
+      // Default card design when no card is saved
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.brightness == Brightness.dark
+              ? theme.colorScheme.surfaceContainerHighest
+              : const Color(0xFFF5F7FA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.brightness == Brightness.dark
+                ? theme.colorScheme.outline
+                : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.credit_card,
+                color: theme.colorScheme.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Visa or Mastercard',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Add a card during payment',
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Add Card',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Beautiful credit card display when card is saved
+    String displayCardNumber = cardNumber.length == 4
+        ? '•••• •••• •••• $cardNumber' // If only last 4 digits
+        : cardNumber; // If full number (shouldn't happen for security)
+
+    // Determine card type from number
+    String cardType = 'MASTERCARD'; // Default to mastercard
+    if (cardNumber.startsWith('4')) {
+      cardType = 'VISA';
+    }
+
+    String displayName = cardHolderName?.toUpperCase() ?? 'CARD HOLDER NAME';
+    String displayExpiry = cardExpiry ?? 'MM/YY';
+
+    return Container(
+      height: 220,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        image: const DecorationImage(
+          image: AssetImage('assets/lines/mastercard.png'),
+          fit: BoxFit.cover,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.black.withValues(alpha: 0.5),
+              Colors.black.withValues(alpha: 0.7),
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Card Type Logo and Contactless Icon
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    cardType,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.contactless,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  size: 32,
+                ),
+              ],
+            ),
+
+            // Card Number
+            Text(
+              displayCardNumber,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+
+            // Card Holder and Expiry
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CARD HOLDER',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'EXPIRES',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      displayExpiry,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -140,22 +140,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 20),
 
                 /// Logo
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      "P",
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.background,
-                      ),
-                    ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/launcher_icon/pk.png',
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
                   ),
                 ),
 
@@ -293,9 +284,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: agree
-                          ? AppColors.redButton
-                          : Colors.grey.shade700,
+                      backgroundColor:
+                          agree ? AppColors.redButton : Colors.grey.shade700,
                       foregroundColor: AppColors.primaryText,
                       elevation: 0,
                       shape: RoundedRectangleBorder(

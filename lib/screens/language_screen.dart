@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:project8/services/language_service.dart';
+import 'package:project8/services/translation_service.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -8,18 +10,13 @@ class LanguageScreen extends StatefulWidget {
 }
 
 class _LanguageScreenState extends State<LanguageScreen> {
-  String _selectedLanguage = 'English';
+  late String _selectedLanguageCode;
 
-  final List<Map<String, String>> _languages = [
-    {'name': 'English', 'native': 'English', 'code': 'en'},
-    {'name': 'Luganda', 'native': 'Oluganda', 'code': 'lg'},
-    {'name': 'Swahili', 'native': 'Kiswahili', 'code': 'sw'},
-    {'name': 'French', 'native': 'Français', 'code': 'fr'},
-    {'name': 'Spanish', 'native': 'Español', 'code': 'es'},
-    {'name': 'Arabic', 'native': 'العربية', 'code': 'ar'},
-    {'name': 'Chinese', 'native': '中文', 'code': 'zh'},
-    {'name': 'German', 'native': 'Deutsch', 'code': 'de'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _selectedLanguageCode = LanguageService().languageCode;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +25,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Language'),
+        title: Text('language'.tr(context)),
         backgroundColor: theme.colorScheme.surface,
         elevation: 0,
       ),
@@ -50,7 +47,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Select Language',
+                        'select_language'.tr(context),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -76,10 +73,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: _languages.length,
+              itemCount: LanguageService.supportedLanguages.length,
               itemBuilder: (context, index) {
-                final language = _languages[index];
-                final isSelected = _selectedLanguage == language['name'];
+                final language = LanguageService.supportedLanguages[index];
+                final isSelected = _selectedLanguageCode == language['code'];
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -106,7 +103,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                       borderRadius: BorderRadius.circular(12),
                       onTap: () {
                         setState(() {
-                          _selectedLanguage = language['name']!;
+                          _selectedLanguageCode = language['code']!;
                         });
                       },
                       child: Padding(
@@ -196,14 +193,24 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Language changed to $_selectedLanguage'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    Navigator.pop(context);
+                  onPressed: () async {
+                    await LanguageService().setLanguage(_selectedLanguageCode);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Language changed to ${LanguageService().languageName}',
+                          ),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                      // Wait a bit for the snackbar to show, then pop
+                      await Future.delayed(const Duration(milliseconds: 500));
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
@@ -212,9 +219,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Apply Language',
-                    style: TextStyle(
+                  child: Text(
+                    'save'.tr(context),
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),

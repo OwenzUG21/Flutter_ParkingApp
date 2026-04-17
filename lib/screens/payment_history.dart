@@ -61,14 +61,22 @@ class PaymentHistoryScreen extends StatelessWidget {
                 final phone = item['phone'] ?? 'N/A';
 
                 Color providerColor = Colors.grey;
+                Color providerTextColor = Colors.white;
+
                 if (provider == 'MTN') {
                   providerColor = Colors.yellow.shade700;
+                  providerTextColor = theme.brightness == Brightness.light
+                      ? Colors.black87
+                      : Colors.black;
                 } else if (provider == 'Airtel') {
                   providerColor = Colors.red.shade600;
+                  providerTextColor = Colors.white;
                 } else if (provider == 'Africell') {
                   providerColor = Colors.blue.shade700;
+                  providerTextColor = Colors.white;
                 } else if (provider == 'M-Cash') {
                   providerColor = Colors.green.shade700;
+                  providerTextColor = Colors.white;
                 }
 
                 return Card(
@@ -129,7 +137,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: providerColor.withValues(alpha: 0.1),
+                                color: providerColor,
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
                                   color: providerColor.withValues(alpha: 0.5),
@@ -139,7 +147,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                               child: Text(
                                 provider,
                                 style: TextStyle(
-                                  color: providerColor,
+                                  color: providerTextColor,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),

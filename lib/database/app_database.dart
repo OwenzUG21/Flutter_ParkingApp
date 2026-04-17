@@ -100,6 +100,10 @@ class ParkingRecords extends Table {
   TextColumn get vehicleImagePath =>
       text().nullable()(); // File path to vehicle image
   TextColumn get receiptPath => text().nullable()(); // File path to receipt
+  TextColumn get parkingName =>
+      text().nullable()(); // Name of the parking location
+  TextColumn get parkingLocation =>
+      text().nullable()(); // Address of the parking location
 }
 
 // Cache Data Table
@@ -161,26 +165,35 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (migrator, from, to) async {
-      if (from == 1) {
-        // Add new columns for file paths
-        await migrator.addColumn(userDataTable, userDataTable.profileImagePath);
-        await migrator.addColumn(
-          userDataTable,
-          userDataTable.backgroundImagePath,
-        );
-        await migrator.addColumn(
-          parkingRecords,
-          parkingRecords.vehicleImagePath,
-        );
-        await migrator.addColumn(parkingRecords, parkingRecords.receiptPath);
-      }
-    },
-  );
+        onUpgrade: (migrator, from, to) async {
+          if (from == 1) {
+            // Add new columns for file paths
+            await migrator.addColumn(
+                userDataTable, userDataTable.profileImagePath);
+            await migrator.addColumn(
+              userDataTable,
+              userDataTable.backgroundImagePath,
+            );
+            await migrator.addColumn(
+              parkingRecords,
+              parkingRecords.vehicleImagePath,
+            );
+            await migrator.addColumn(
+                parkingRecords, parkingRecords.receiptPath);
+          }
+          if (from <= 2) {
+            // Add parking name and location columns
+            await migrator.addColumn(
+                parkingRecords, parkingRecords.parkingName);
+            await migrator.addColumn(
+                parkingRecords, parkingRecords.parkingLocation);
+          }
+        },
+      );
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/user_profile_service.dart';
+import '../services/translation_service.dart';
 import 'dashboard.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -203,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Payment Section
               _buildSection(
-                title: 'Payment',
+                title: 'payment'.tr(context),
                 items: [
                   _buildMenuItem(
                     icon: Icons.payment,

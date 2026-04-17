@@ -4,6 +4,7 @@ import '../themes/colors.dart';
 import '../services/parking_service.dart';
 import '../services/booking_service.dart';
 import '../services/notification_service.dart';
+import '../services/translation_service.dart';
 
 void main() {
   runApp(const ParkingBookingApp());
@@ -730,6 +731,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                     serviceFee: serviceFee.toDouble(),
                                     vehicleType: 'car',
                                     notes: 'Booking from ${widget.parkingName}',
+                                    parkingName: widget.parkingName,
+                                    parkingLocation: widget.parkingLocation,
                                   );
 
                                   print(
@@ -850,19 +853,23 @@ class _BookingScreenState extends State<BookingScreen> {
             child: GNav(
               rippleColor: Colors.grey.withValues(alpha: 0.1),
               hoverColor: Colors.grey.withValues(alpha: 0.05),
-              gap: 6,
+              gap: 4, // Reduced from 6 to 4
               activeColor: Colors.white,
               iconSize: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 12), // Reduced from 16 to 12
               duration: const Duration(milliseconds: 400),
               tabBackgroundColor: AppColors.redButton,
               color: Colors.grey.shade600,
-              textSize: 12,
-              tabs: const [
-                GButton(icon: Icons.home_rounded, text: 'Home'),
-                GButton(icon: Icons.groups_rounded, text: 'Community'),
-                GButton(icon: Icons.person_rounded, text: 'Profile'),
-                GButton(icon: Icons.settings_rounded, text: 'Settings'),
+              textSize: 11, // Reduced from 12 to 11
+              tabs: [
+                GButton(icon: Icons.home_rounded, text: 'home'.tr(context)),
+                GButton(
+                    icon: Icons.groups_rounded, text: 'community'.tr(context)),
+                GButton(
+                    icon: Icons.person_rounded, text: 'profile'.tr(context)),
+                GButton(
+                    icon: Icons.settings_rounded, text: 'settings'.tr(context)),
               ],
               selectedIndex: selectedNavIndex,
               onTabChange: (index) {
@@ -964,5 +971,34 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
       ),
     );
+  }
+
+  // Helper methods to get coordinates for different locations
+  double _getLatitudeForLocation(String location) {
+    // Sample coordinates for Uganda locations
+    if (location.toLowerCase().contains('kololo')) {
+      return 0.3476; // Kololo, Kampala
+    } else if (location.toLowerCase().contains('kampala')) {
+      return 0.3476; // Kampala city center
+    } else if (location.toLowerCase().contains('jinja')) {
+      return 0.4314; // Jinja
+    } else if (location.toLowerCase().contains('entebbe')) {
+      return 0.0564; // Entebbe
+    }
+    return 0.3476; // Default to Kampala
+  }
+
+  double _getLongitudeForLocation(String location) {
+    // Sample coordinates for Uganda locations
+    if (location.toLowerCase().contains('kololo')) {
+      return 32.6052; // Kololo, Kampala
+    } else if (location.toLowerCase().contains('kampala')) {
+      return 32.6052; // Kampala city center
+    } else if (location.toLowerCase().contains('jinja')) {
+      return 33.2042; // Jinja
+    } else if (location.toLowerCase().contains('entebbe')) {
+      return 32.4432; // Entebbe
+    }
+    return 32.6052; // Default to Kampala
   }
 }

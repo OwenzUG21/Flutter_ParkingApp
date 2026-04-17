@@ -122,11 +122,13 @@
 // }
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:project8/screens/bookingscreen.dart';
 import 'package:project8/screens/dashboard.dart';
 import 'package:project8/screens/reservationscreen.dart';
 import 'package:project8/screens/parking_spots.dart';
 import 'package:project8/screens/mobile_money_payment.dart';
+import 'package:project8/screens/credit_card_payment.dart';
 import 'package:project8/screens/chat_screen.dart';
 import 'package:project8/screens/auth_wrapper.dart';
 import 'package:project8/screens/edit_profile_screen.dart';
@@ -142,23 +144,37 @@ import 'package:project8/screens/privacy_security_screen.dart';
 import 'package:project8/screens/data_storage_screen.dart';
 import 'package:project8/screens/language_screen.dart';
 import 'package:project8/screens/terms_of_service_screen.dart';
+import 'package:project8/screens/map_directions_screen.dart';
+import 'package:project8/screens/map_screen.dart';
 import 'package:project8/services/theme_service.dart';
+import 'package:project8/services/language_service.dart';
+import 'package:project8/services/translation_service.dart';
 import 'package:project8/themes/app_theme.dart';
 import 'screens/login.dart';
 import 'screens/signup.dart';
 import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize services
+  await LanguageService().initialize();
+
   runApp(const ParkFlexApp());
 }
 
-class ParkFlexApp extends StatelessWidget {
+class ParkFlexApp extends StatefulWidget {
   const ParkFlexApp({super.key});
 
+  @override
+  State<ParkFlexApp> createState() => _ParkFlexAppState();
+}
+
+class _ParkFlexAppState extends State<ParkFlexApp> {
   void _updateSystemUI(ThemeMode themeMode, Brightness platformBrightness) {
     final isDark = themeMode == ThemeMode.dark ||
         (themeMode == ThemeMode.system &&
@@ -178,10 +194,12 @@ class ParkFlexApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to both theme and language changes
     return ListenableBuilder(
-      listenable: ThemeService(),
+      listenable: Listenable.merge([ThemeService(), LanguageService()]),
       builder: (context, _) {
         final themeMode = ThemeService().themeMode;
+        final locale = LanguageService().locale;
         final platformBrightness =
             WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
@@ -194,10 +212,18 @@ class ParkFlexApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,
+          locale: locale,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: TranslationService.supportedLocales,
           initialRoute: '/splash',
           navigatorKey: _navigatorKey,
           routes: {
             '/splash': (context) => const SplashScreen(),
+            '/onboarding': (context) => const OnboardingScreen(),
             '/login': (context) => const LoginScreen(),
             '/auth': (context) => const AuthWrapper(),
             '/signup': (context) => const SignupScreen(),
@@ -215,8 +241,12 @@ class ParkFlexApp extends StatelessWidget {
             '/data-storage': (context) => const DataStorageScreen(),
             '/language': (context) => const LanguageScreen(),
             '/terms-of-service': (context) => const TermsOfServiceScreen(),
+            '/map_directions': (context) => const MapDirectionsScreen(),
           },
           onGenerateRoute: (settings) {
+            print('🔍 onGenerateRoute called for: ${settings.name}');
+            print('🔍 Arguments: ${settings.arguments}');
+
             if (settings.name == '/dashboard') {
               final args = settings.arguments as Map<String, dynamic>?;
               return MaterialPageRoute(
@@ -273,6 +303,40 @@ class ParkFlexApp extends StatelessWidget {
                   slotNumber: args?['slotNumber'] as String?,
                   duration: args?['duration'] as String?,
                   hours: args?['hours'] as int?,
+                ),
+              );
+            }
+            if (settings.name == '/credit-card-payment') {
+              print('🔍 Credit card payment route matched!');
+              final args = settings.arguments as Map<String, dynamic>?;
+              print('🔍 Arguments: $args');
+              return MaterialPageRoute(
+                builder: (context) {
+                  print('🔍 Building CreditCardPaymentScreen');
+                  return CreditCardPaymentScreen(
+                    totalAmount: args?['totalAmount'] ?? 11500,
+                    parkingName: args?['parkingName'] ?? 'Acacia Mall Parking',
+                    parkingLocation:
+                        args?['parkingLocation'] ?? 'Kololo, Kampala',
+                    reservationId: args?['reservationId'] as String?,
+                    parkingRecordId: args?['parkingRecordId'] as int?,
+                    vehiclePlate: args?['vehiclePlate'] as String?,
+                    slotNumber: args?['slotNumber'] as String?,
+                    duration: args?['duration'] as String?,
+                    hours: args?['hours'] as int?,
+                  );
+                },
+              );
+            }
+            if (settings.name == '/map') {
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (context) => MapScreen(
+                  parkingName: args?['parkingName'] ?? 'Parking Location',
+                  parkingLocation:
+                      args?['parkingLocation'] ?? 'Unknown Location',
+                  latitude: args?['latitude'] ?? 0.3476,
+                  longitude: args?['longitude'] ?? 32.6052,
                 ),
               );
             }

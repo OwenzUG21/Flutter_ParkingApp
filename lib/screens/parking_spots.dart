@@ -294,7 +294,6 @@ class _ParkingSpotsScreenState extends State<ParkingSpotsScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     if (_filteredParkingSpots.isEmpty)
                       Center(
                         child: Padding(
@@ -410,9 +409,53 @@ class _ParkingSpotsScreenState extends State<ParkingSpotsScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    location,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          location,
+                          style:
+                              const TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/map_directions',
+                            arguments: {
+                              'parkingName': name,
+                              'parkingLocation': location,
+                            },
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CAF50),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.directions,
+                                  color: Colors.white, size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                'Directions',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -423,8 +466,8 @@ class _ParkingSpotsScreenState extends State<ParkingSpotsScreen> {
                         color: spacesLeft > 20
                             ? const Color(0xFF4CAF50)
                             : spacesLeft > 10
-                            ? Colors.orange
-                            : Colors.red,
+                                ? Colors.orange
+                                : Colors.red,
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -437,8 +480,8 @@ class _ParkingSpotsScreenState extends State<ParkingSpotsScreen> {
                             color: spacesLeft > 20
                                 ? const Color(0xFF4CAF50)
                                 : spacesLeft > 10
-                                ? Colors.orange
-                                : Colors.red,
+                                    ? Colors.orange
+                                    : Colors.red,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

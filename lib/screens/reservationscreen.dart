@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../themes/colors.dart';
+import '../services/translation_service.dart';
 
 void main() {
   runApp(const ReservationDetailsApp());
@@ -157,26 +158,26 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                                         fit: BoxFit.cover,
                                         errorBuilder:
                                             (context, error, stackTrace) {
-                                              return Container(
-                                                width: double.infinity,
-                                                height: 160,
-                                                decoration: BoxDecoration(
-                                                  gradient: LinearGradient(
-                                                    colors: [
-                                                      const Color(
-                                                        0xFF5B6B9E,
-                                                      ).withValues(alpha: 0.8),
-                                                      const Color(0xFF4A5A8E),
-                                                    ],
-                                                  ),
-                                                ),
-                                                child: const Icon(
-                                                  Icons.local_parking_rounded,
-                                                  size: 60,
-                                                  color: Colors.white,
-                                                ),
-                                              );
-                                            },
+                                          return Container(
+                                            width: double.infinity,
+                                            height: 160,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  const Color(
+                                                    0xFF5B6B9E,
+                                                  ).withValues(alpha: 0.8),
+                                                  const Color(0xFF4A5A8E),
+                                                ],
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.local_parking_rounded,
+                                              size: 60,
+                                              color: Colors.white,
+                                            ),
+                                          );
+                                        },
                                       )
                                     : Container(
                                         width: double.infinity,
@@ -305,8 +306,7 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                                       child: _buildInfoItem(
                                         icon: Icons.confirmation_number,
                                         label: 'Slot Number',
-                                        value:
-                                            widget.slotNumber?.toString() ??
+                                        value: widget.slotNumber?.toString() ??
                                             '--',
                                       ),
                                     ),
@@ -459,7 +459,11 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: () {
+                          print(
+                              '💳 Selected payment method: $selectedPaymentMethod');
+
                           if (selectedPaymentMethod == 'Mobile money') {
+                            print('📱 Navigating to mobile money payment');
                             Navigator.pushNamed(
                               context,
                               '/mobile-money-payment',
@@ -475,13 +479,30 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                                 'hours': widget.hours,
                               },
                             );
+                          } else if (selectedPaymentMethod == 'Credit card') {
+                            print('💳 Navigating to credit card payment');
+                            Navigator.pushNamed(
+                              context,
+                              '/credit-card-payment',
+                              arguments: {
+                                'totalAmount': widget.totalCost,
+                                'parkingName': widget.parkingName,
+                                'parkingLocation': widget.parkingLocation,
+                                'reservationId': widget.reservationId,
+                                'parkingRecordId': widget.parkingRecordId,
+                                'vehiclePlate': widget.vehiclePlate,
+                                'slotNumber': widget.slotNumber?.toString(),
+                                'duration': widget.duration,
+                                'hours': widget.hours,
+                              },
+                            );
                           } else {
+                            print(
+                                '⚠️ Unknown payment method: $selectedPaymentMethod');
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: const Text(
-                                  'Credit card payment coming soon!',
-                                ),
-                                backgroundColor: const Color(0xFF5B6B9E),
+                                content: Text('Please select a payment method'),
+                                backgroundColor: Colors.orange.shade600,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -501,9 +522,9 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          'Confirm & Pay',
-                          style: TextStyle(
+                        child: Text(
+                          'confirm_pay'.tr(context),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
@@ -535,19 +556,23 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
             child: GNav(
               rippleColor: Colors.grey.withValues(alpha: 0.1),
               hoverColor: Colors.grey.withValues(alpha: 0.05),
-              gap: 6,
+              gap: 4, // Reduced from 6 to 4
               activeColor: Colors.white,
               iconSize: 24,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 12), // Reduced from 16 to 12
               duration: const Duration(milliseconds: 400),
               tabBackgroundColor: AppColors.redButton,
               color: Colors.grey.shade600,
-              textSize: 12,
-              tabs: const [
-                GButton(icon: Icons.home_rounded, text: 'Home'),
-                GButton(icon: Icons.groups_rounded, text: 'Community'),
-                GButton(icon: Icons.person_rounded, text: 'Profile'),
-                GButton(icon: Icons.settings_rounded, text: 'Settings'),
+              textSize: 11, // Reduced from 12 to 11
+              tabs: [
+                GButton(icon: Icons.home_rounded, text: 'home'.tr(context)),
+                GButton(
+                    icon: Icons.groups_rounded, text: 'community'.tr(context)),
+                GButton(
+                    icon: Icons.person_rounded, text: 'profile'.tr(context)),
+                GButton(
+                    icon: Icons.settings_rounded, text: 'settings'.tr(context)),
               ],
               selectedIndex: selectedNavIndex,
               onTabChange: (index) {
@@ -675,6 +700,7 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
           onTap: () {
             setState(() {
               selectedPaymentMethod = value;
+              print('💳 Payment method selected: $value');
             });
           },
           borderRadius: BorderRadius.circular(12),
@@ -687,8 +713,8 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                 color: isSelected
                     ? theme.colorScheme.primary
                     : theme.brightness == Brightness.dark
-                    ? theme.colorScheme.outline
-                    : Colors.grey.shade300,
+                        ? theme.colorScheme.outline
+                        : Colors.grey.shade300,
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected
@@ -709,8 +735,8 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
                     color: isSelected
                         ? theme.colorScheme.primary.withValues(alpha: 0.1)
                         : theme.brightness == Brightness.dark
-                        ? theme.colorScheme.surfaceContainerHighest
-                        : Colors.grey.shade100,
+                            ? theme.colorScheme.surfaceContainerHighest
+                            : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -765,9 +791,9 @@ class _ReservationDetailsScreenState extends State<ReservationDetailsScreen> {
 
   String _formatCurrency(int amount) {
     return amount.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   String _formatTime(TimeOfDay time) {
