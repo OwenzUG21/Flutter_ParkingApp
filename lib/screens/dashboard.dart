@@ -226,7 +226,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _fetchWeather() async {
-    final weather = await _weatherService.getWeather('Kampala');
+    final weather =
+        await _weatherService.getWeather('Kampala', forceRefresh: false);
     if (mounted) {
       setState(() {
         _currentWeather = weather;
@@ -384,9 +385,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   Text(
                     "ParkFlexApp",
                     style: TextStyle(
-                      color: theme.brightness == Brightness.dark
-                          ? Colors.white
-                          : const Color(0xFF1A1F36),
+                      color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -475,18 +474,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                       children: [
                         Icon(
                           Icons.dark_mode,
-                          color: theme.brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.9)
-                              : const Color(0xFF1A1F36),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
                             'dark_mode'.tr(context),
                             style: TextStyle(
-                              color: theme.brightness == Brightness.dark
-                                  ? Colors.white.withValues(alpha: 0.95)
-                                  : const Color(0xFF1A1F36),
+                              color: Colors.white.withValues(alpha: 0.95),
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,
@@ -535,31 +530,22 @@ class _DashboardScreenState extends State<DashboardScreen>
     required String title,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return ListTile(
       leading: Icon(
         icon,
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.9)
-            : const Color(0xFF1A1F36),
+        color: Colors.white.withValues(alpha: 0.9),
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.95)
-              : const Color(0xFF1A1F36),
+          color: Colors.white.withValues(alpha: 0.95),
           fontSize: 16,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,
         ),
       ),
       onTap: onTap,
-      hoverColor: isDark
-          ? Colors.white.withValues(alpha: 0.1)
-          : const Color(0xFF00A884).withValues(alpha: 0.08),
+      hoverColor: Colors.white.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }

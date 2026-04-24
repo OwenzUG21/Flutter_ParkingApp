@@ -31,16 +31,27 @@ class _WeatherScreenState extends State<WeatherScreen> {
     _fetchAllWeather();
   }
 
-  Future<void> _fetchAllWeather() async {
+  Future<void> _fetchAllWeather({bool forceRefresh = false}) async {
     setState(() => _isLoading = true);
 
+    // Clear cache if force refresh is requested
+    if (forceRefresh) {
+      _weatherService.clearCache();
+    }
+
     // Fetch main city weather
-    final mainWeather = await _weatherService.getWeather(widget.currentCity);
+    final mainWeather = await _weatherService.getWeather(
+      widget.currentCity,
+      forceRefresh: forceRefresh,
+    );
 
     // Fetch nearby cities weather
     final Map<String, WeatherData?> nearbyWeather = {};
     for (final city in _nearbyCities) {
-      nearbyWeather[city] = await _weatherService.getWeather(city);
+      nearbyWeather[city] = await _weatherService.getWeather(
+        city,
+        forceRefresh: forceRefresh,
+      );
     }
 
     if (mounted) {
@@ -80,7 +91,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
           child: _isLoading
               ? Center(child: CircularProgressIndicator(color: Colors.white))
               : RefreshIndicator(
-                  onRefresh: _fetchAllWeather,
+                  onRefresh: () => _fetchAllWeather(forceRefresh: true),
                   child: CustomScrollView(
                     slivers: [
                       // App Bar
@@ -107,7 +118,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               Icons.refresh,
                               color: Colors.white,
                             ),
-                            onPressed: _fetchAllWeather,
+                            onPressed: () =>
+                                _fetchAllWeather(forceRefresh: true),
                           ),
                         ],
                       ),
@@ -141,11 +153,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         sliver: SliverGrid(
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.85,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.85,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
                           delegate: SliverChildBuilderDelegate((
                             context,
                             index,
